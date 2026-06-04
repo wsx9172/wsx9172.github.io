@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐍 贪吃蛇游戏</h1>
+            <div class="stats">
+                <div class="stat">
+                    <span class="label">得分:</span>
+                    <span class="value" id="score">0</span>
+                </div>
+                <div class="stat">
+                    <span class="label">最高分:</span>
+                    <span class="value" id="highScore">0</span>
+                </div>
+                <div class="stat">
+                    <span class="label">速度:</span>
+                    <span class="value" id="level">1</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-wrapper">
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary">开始游戏</button>
+            <button id="pauseBtn" class="btn btn-secondary">暂停</button>
+            <button id="resetBtn" class="btn btn-secondary">重置</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>操作说明</h3>
+            <p>🎮 <strong>键盘操作:</strong></p>
+            <ul>
+                <li><kbd>↑</kbd> 向上移动</li>
+                <li><kbd>↓</kbd> 向下移动</li>
+                <li><kbd>←</kbd> 向左移动</li>
+                <li><kbd>→</kbd> 向右移动</li>
+                <li><kbd>空格</kbd> 暂停/继续</li>
+            </ul>
+            <p>🎯 <strong>游戏规则:</strong></p>
+            <ul>
+                <li>吃掉红色的食物增长身体</li>
+                <li>碰撞边界或自己的身体游戏结束</li>
+                <li>每吃10个食物速度增加一级</li>
+                <li>分数 = 吃掉的食物数 × 当前速度等级</li>
+            </ul>
+        </div>
+        
+        <div id="gameOverModal" class="modal">
+            <div class="modal-content">
+                <h2>游戏结束!</h2>
+                <p>最终得分: <span id="finalScore">0</span></p>
+                <p>最高分: <span id="finalHighScore">0</span></p>
+                <button id="restartBtn" class="btn btn-primary">重新开始</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
