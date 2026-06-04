@@ -1,6 +1,6 @@
 // 游戏配置
 const GRID_SIZE = 20;
-const CANVAS_SIZE = 400;
+const CANVAS_SIZE = 600;
 const CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
 
 // 游戏状态
@@ -94,7 +94,7 @@ function startGame() {
     if (!gameState.isGameRunning) {
         gameState.isGameRunning = true;
         gameState.isPaused = false;
-        startBtn.textContent = '游戏中...';
+        startBtn.textContent = '游戏中';
         startBtn.disabled = true;
         pauseBtn.disabled = false;
         gameLoop();
@@ -123,7 +123,7 @@ function resetGame() {
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     
-    startBtn.textContent = '开始游戏';
+    startBtn.textContent = '开始';
     startBtn.disabled = false;
     pauseBtn.textContent = '暂停';
     pauseBtn.disabled = true;
@@ -233,7 +233,7 @@ function endGame() {
     gameOverModal.classList.add('show');
 
     // 重置按钮状态
-    startBtn.textContent = '开始游戏';
+    startBtn.textContent = '开始';
     startBtn.disabled = false;
     pauseBtn.textContent = '暂停';
     pauseBtn.disabled = true;
@@ -247,65 +247,12 @@ function updateDisplay() {
 
 // 绘制游戏
 function draw() {
-    // 清空画布
-    ctx.fillStyle = '#000';
+    // 清空画布并填充背景
+    ctx.fillStyle = '#0a0a0a';
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    // 绘制蛇
-    gameState.snake.forEach((segment, index) => {
-        if (index === 0) {
-            // 蛇头
-            ctx.fillStyle = '#00ff00';
-            ctx.fillRect(
-                segment.x * CELL_SIZE,
-                segment.y * CELL_SIZE,
-                CELL_SIZE,
-                CELL_SIZE
-            );
-            
-            // 蛇头的眼睛
-            ctx.fillStyle = '#000';
-            const eyeSize = CELL_SIZE / 4;
-            let eyeX = segment.x * CELL_SIZE + CELL_SIZE / 4;
-            let eyeY = segment.y * CELL_SIZE + CELL_SIZE / 4;
-            
-            if (gameState.direction.x > 0) {
-                eyeX = segment.x * CELL_SIZE + CELL_SIZE * 0.6;
-            } else if (gameState.direction.x < 0) {
-                eyeX = segment.x * CELL_SIZE + CELL_SIZE * 0.2;
-            } else if (gameState.direction.y < 0) {
-                eyeY = segment.y * CELL_SIZE + CELL_SIZE * 0.2;
-            } else if (gameState.direction.y > 0) {
-                eyeY = segment.y * CELL_SIZE + CELL_SIZE * 0.6;
-            }
-            
-            ctx.fillRect(eyeX, eyeY, eyeSize, eyeSize);
-        } else {
-            // 蛇身
-            ctx.fillStyle = '#00cc00';
-            ctx.fillRect(
-                segment.x * CELL_SIZE,
-                segment.y * CELL_SIZE,
-                CELL_SIZE - 1,
-                CELL_SIZE - 1
-            );
-        }
-    });
-
-    // 绘制食物
-    ctx.fillStyle = '#ff0000';
-    ctx.beginPath();
-    ctx.arc(
-        gameState.food.x * CELL_SIZE + CELL_SIZE / 2,
-        gameState.food.y * CELL_SIZE + CELL_SIZE / 2,
-        CELL_SIZE / 2 - 1,
-        0,
-        Math.PI * 2
-    );
-    ctx.fill();
-
-    // 绘制网格（可选）
-    ctx.strokeStyle = '#1a1a1a';
+    // 绘制网格背景
+    ctx.strokeStyle = 'rgba(102, 126, 234, 0.1)';
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= GRID_SIZE; i++) {
         ctx.beginPath();
@@ -318,6 +265,179 @@ function draw() {
         ctx.lineTo(CANVAS_SIZE, i * CELL_SIZE);
         ctx.stroke();
     }
+
+    // 绘制蛇
+    gameState.snake.forEach((segment, index) => {
+        const x = segment.x * CELL_SIZE;
+        const y = segment.y * CELL_SIZE;
+        const size = CELL_SIZE - 2;
+
+        if (index === 0) {
+            // 绘制蛇头
+            drawSnakeHead(x, y, size);
+        } else {
+            // 绘制蛇身，颜色渐变
+            const opacity = 1 - (index / gameState.snake.length) * 0.5;
+            drawSnakeSegment(x, y, size, opacity, index);
+        }
+    });
+
+    // 绘制食物
+    drawFood(gameState.food.x * CELL_SIZE, gameState.food.y * CELL_SIZE);
+}
+
+// 绘制蛇头
+function drawSnakeHead(x, y, size) {
+    // 蛇头主体 - 圆角矩形
+    const radius = size / 2;
+    ctx.fillStyle = 'rgba(76, 255, 0, 0.95)';
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + size - radius, y);
+    ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
+    ctx.lineTo(x + size, y + size - radius);
+    ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
+    ctx.lineTo(x + radius, y + size);
+    ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.fill();
+
+    // 蛇头发光效果
+    ctx.fillStyle = 'rgba(100, 255, 0, 0.3)';
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y - 1);
+    ctx.lineTo(x + size - radius, y - 1);
+    ctx.quadraticCurveTo(x + size + 1, y, x + size + 1, y + radius);
+    ctx.lineTo(x + size + 1, y + size - radius);
+    ctx.quadraticCurveTo(x + size + 1, y + size + 1, x + size - radius, y + size + 1);
+    ctx.lineTo(x + radius, y + size + 1);
+    ctx.quadraticCurveTo(x - 1, y + size, x - 1, y + size - radius);
+    ctx.lineTo(x - 1, y + radius);
+    ctx.quadraticCurveTo(x - 1, y - 1, x + radius, y - 1);
+    ctx.fill();
+
+    // 绘制眼睛
+    const eyeSize = size * 0.18;
+    const eyeGap = size * 0.08;
+    let eye1X = x + size / 2 - eyeGap;
+    let eye1Y = y + size / 2 - eyeGap;
+    let eye2X = x + size / 2 + eyeGap;
+    let eye2Y = y + size / 2 - eyeGap;
+
+    // 根据方向调整眼睛位置
+    if (gameState.direction.x > 0) {
+        eye1X = x + size - eyeSize * 2;
+        eye1Y = y + size / 2 - eyeSize / 2;
+        eye2X = x + size - eyeSize * 2;
+        eye2Y = y + size / 2 + eyeSize / 2;
+    } else if (gameState.direction.x < 0) {
+        eye1X = x + eyeSize / 2;
+        eye1Y = y + size / 2 - eyeSize / 2;
+        eye2X = x + eyeSize / 2;
+        eye2Y = y + size / 2 + eyeSize / 2;
+    } else if (gameState.direction.y < 0) {
+        eye1X = x + size / 2 - eyeSize / 2;
+        eye1Y = y + eyeSize / 2;
+        eye2X = x + size / 2 + eyeSize / 2;
+        eye2Y = y + eyeSize / 2;
+    } else if (gameState.direction.y > 0) {
+        eye1X = x + size / 2 - eyeSize / 2;
+        eye1Y = y + size - eyeSize * 2;
+        eye2X = x + size / 2 + eyeSize / 2;
+        eye2Y = y + size - eyeSize * 2;
+    }
+
+    // 绘制眼白
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(eye1X, eye1Y, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(eye2X, eye2Y, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 绘制瞳孔
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(eye1X, eye1Y, eyeSize * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(eye2X, eye2Y, eyeSize * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 绘制高光
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(eye1X - eyeSize * 0.3, eye1Y - eyeSize * 0.3, eyeSize * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(eye2X - eyeSize * 0.3, eye2Y - eyeSize * 0.3, eyeSize * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// 绘制蛇身体
+function drawSnakeSegment(x, y, size, opacity, index) {
+    const hue = (index * 20) % 360;
+    
+    // 蛇身 - 圆角矩形，颜色略有不同
+    const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
+    gradient.addColorStop(0, `hsla(130, 100%, 50%, ${opacity * 0.9})`);
+    gradient.addColorStop(1, `hsla(110, 90%, 40%, ${opacity * 0.8})`);
+    
+    ctx.fillStyle = gradient;
+    const radius = size / 4;
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + size - radius, y);
+    ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
+    ctx.lineTo(x + size, y + size - radius);
+    ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
+    ctx.lineTo(x + radius, y + size);
+    ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.fill();
+}
+
+// 绘制食物
+function drawFood(x, y) {
+    const size = CELL_SIZE - 2;
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    
+    // 绘制外层光晕
+    const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size);
+    glowGradient.addColorStop(0, 'rgba(255, 100, 100, 0.6)');
+    glowGradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 绘制食物主体 - 圆形
+    const foodGradient = ctx.createRadialGradient(centerX - size / 6, centerY - size / 6, 0, centerX, centerY, size / 2);
+    foodGradient.addColorStop(0, 'rgba(255, 150, 100, 1)');
+    foodGradient.addColorStop(0.5, 'rgba(255, 80, 80, 1)');
+    foodGradient.addColorStop(1, 'rgba(200, 40, 40, 1)');
+    
+    ctx.fillStyle = foodGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, size / 2 - 1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 绘制高光
+    ctx.fillStyle = 'rgba(255, 200, 150, 0.6)';
+    ctx.beginPath();
+    ctx.arc(centerX - size / 6, centerY - size / 6, size / 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 绘制边框
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, size / 2 - 1, 0, Math.PI * 2);
+    ctx.stroke();
 }
 
 // 初始化游戏

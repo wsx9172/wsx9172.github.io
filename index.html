@@ -3,67 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贪吃蛇游戏</title>
+    <title>贪吃蛇</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🐍 贪吃蛇游戏</h1>
-            <div class="stats">
-                <div class="stat">
-                    <span class="label">得分:</span>
-                    <span class="value" id="score">0</span>
+    <div class="main-container">
+        <div class="sidebar left-sidebar">
+            <h2>贪吃蛇</h2>
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <div class="stat-label">得分</div>
+                    <div class="stat-value" id="score">0</div>
                 </div>
-                <div class="stat">
-                    <span class="label">最高分:</span>
-                    <span class="value" id="highScore">0</span>
+                <div class="stat-item">
+                    <div class="stat-label">最高分</div>
+                    <div class="stat-value" id="highScore">0</div>
                 </div>
-                <div class="stat">
-                    <span class="label">速度:</span>
-                    <span class="value" id="level">1</span>
+                <div class="stat-item">
+                    <div class="stat-label">等级</div>
+                    <div class="stat-value" id="level">1</div>
                 </div>
+            </div>
+            
+            <div class="controls-panel">
+                <button id="startBtn" class="btn-control">开始</button>
+                <button id="pauseBtn" class="btn-control">暂停</button>
+                <button id="resetBtn" class="btn-control">重置</button>
+            </div>
+            
+            <div class="info-box">
+                <p>⬆️ ⬅️ ⬇️ ➡️ 控制方向</p>
+                <p>空格 暂停/继续</p>
             </div>
         </div>
         
-        <div class="game-wrapper">
-            <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="game-area">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
         </div>
         
-        <div class="controls">
-            <button id="startBtn" class="btn btn-primary">开始游戏</button>
-            <button id="pauseBtn" class="btn btn-secondary">暂停</button>
-            <button id="resetBtn" class="btn btn-secondary">重置</button>
-        </div>
-        
-        <div class="instructions">
+        <div class="sidebar right-sidebar">
             <h3>操作说明</h3>
-            <p>🎮 <strong>键盘操作:</strong></p>
-            <ul>
-                <li><kbd>↑</kbd> 向上移动</li>
-                <li><kbd>↓</kbd> 向下移动</li>
-                <li><kbd>←</kbd> 向左移动</li>
-                <li><kbd>→</kbd> 向右移动</li>
-                <li><kbd>空格</kbd> 暂停/继续</li>
-            </ul>
-            <p>🎯 <strong>游戏规则:</strong></p>
-            <ul>
-                <li>吃掉红色的食物增长身体</li>
-                <li>碰撞边界或自己的身体游戏结束</li>
-                <li>每吃10个食物速度增加一级</li>
-                <li>分数 = 吃掉的食物数 × 当前速度等级</li>
-            </ul>
+            <div class="instructions-box">
+                <p><strong>规则</strong></p>
+                <ul>
+                    <li>吃食物增长身体</li>
+                    <li>避免碰撞边界</li>
+                    <li>避免碰撞自己</li>
+                    <li>每吃10个升级</li>
+                </ul>
+            </div>
+            
+            <div class="instructions-box">
+                <p><strong>键盘快捷</strong></p>
+                <ul>
+                    <li>↑ 向上</li>
+                    <li>↓ 向下</li>
+                    <li>← 向左</li>
+                    <li>→ 向右</li>
+                    <li>空格 暂停</li>
+                </ul>
+            </div>
         </div>
         
         <div id="gameOverModal" class="modal">
             <div class="modal-content">
-                <h2>游戏结束!</h2>
-                <p>最终得分: <span id="finalScore">0</span></p>
-                <p>最高分: <span id="finalHighScore">0</span></p>
-                <button id="restartBtn" class="btn btn-primary">重新开始</button>
+                <h2>游戏结束</h2>
+                <div class="result-info">
+                    <div class="result-item">
+                        <span>最终得分</span>
+                        <span id="finalScore">0</span>
+                    </div>
+                    <div class="result-item">
+                        <span>最高分</span>
+                        <span id="finalHighScore">0</span>
+                    </div>
+                </div>
+                <button id="restartBtn" class="btn-restart">重新开始</button>
             </div>
         </div>
     </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
     
     <script src="game.js"></script>
 </body>
