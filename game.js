@@ -406,12 +406,18 @@ function handleKeyPress(event) {
     }
 }
 
-// 应用方向变更（未开始/暂停时直接生效改眼睛，运行时进队列）
+// 应用方向变更（未开始/暂停/倒计时时直接生效改眼睛，运行时进队列）
 function applyDirection(direction) {
-    if (!gameState.isGameRunning || gameState.isPaused) {
-        // 未开始或暂停：直接更新蛇头朝向，不允许反向
+    if (!gameState.isGameRunning || gameState.isPaused || countdownTimer) {
+        // 未开始、暂停或倒计时中：直接更新蛇头朝向
+        // 不允许反向
         if (direction.x === -gameState.direction.x && direction.y === -gameState.direction.y) return;
         if (direction.x === 0 && direction.y === 0) return;
+        // 不允许朝向身体（避免游戏一开始就碰撞自己）
+        const head = gameState.snake[0];
+        const nextX = head.x + direction.x;
+        const nextY = head.y + direction.y;
+        if (gameState.snake.some(seg => seg.x === nextX && seg.y === nextY)) return;
         gameState.direction = direction;
         gameState.nextDirection = direction;
         gameState.directionQueue = [];
@@ -498,8 +504,6 @@ function startGame() {
         return;
     }
 
-    soundManager.init();
-
     // 冲刷可能存在的 game over pending 震动（用户手势中触发）
     if (hapticManager._pending !== null) {
         hapticManager._vibrateNow(hapticManager._pending);
@@ -530,6 +534,9 @@ function startGame() {
 
         gameLoop();
     });
+
+    // 异步初始化音频上下文，避免阻塞倒计时显示
+    soundManager.init();
 }
 
 function clearCountdownTimer() {
