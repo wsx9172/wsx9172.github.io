@@ -17,7 +17,7 @@ const gameState = {
     level: 1,
     isGameRunning: false,
     isPaused: false,
-    gameSpeed: 100
+    gameSpeed: 120
 };
 
 // 粒子系统
@@ -327,7 +327,7 @@ function resetGame() {
     gameState.directionQueue = [];
     gameState.score = 0;
     gameState.level = 1;
-    gameState.gameSpeed = 100;
+    gameState.gameSpeed = 120;
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     particles.length = 0;  // 清空粒子
@@ -431,7 +431,7 @@ function gameLoop() {
         const newLevel = Math.floor(foodEaten / 10) + 1;
         if (newLevel > gameState.level) {
             gameState.level = newLevel;
-            gameState.gameSpeed = Math.max(50, 100 - (gameState.level - 1) * 10);
+            gameState.gameSpeed = Math.max(50, 120 - (gameState.level - 1) * 10);
             
             // 触发升级动画
             triggerLevelUpAnimation();
@@ -564,56 +564,40 @@ function drawLevelUpAnimation() {
     ctx.translate(centerX, centerY);
     ctx.scale(scale, scale);
     
-    // 绘制向上箭头
-    const arrowSize = 40;
+    // 绘制向上箭头（实心填充）
     const arrowColor = 'rgba(255, 215, 0, 1)'; // 金色
-    
-    ctx.strokeStyle = arrowColor;
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    // 箭头主体（竖线）
-    ctx.beginPath();
-    ctx.moveTo(0, arrowSize / 2);
-    ctx.lineTo(0, -arrowSize / 2);
-    ctx.stroke();
-    
-    // 箭头头部（左斜线）
-    ctx.beginPath();
-    ctx.moveTo(0, -arrowSize / 2);
-    ctx.lineTo(-arrowSize / 3, -arrowSize / 6);
-    ctx.stroke();
-    
-    // 箭头头部（右斜线）
-    ctx.beginPath();
-    ctx.moveTo(0, -arrowSize / 2);
-    ctx.lineTo(arrowSize / 3, -arrowSize / 6);
-    ctx.stroke();
-    
-    // 添加发光效果
+
+    // 箭头多边形：宽箭头，有厚度
+    const bodyHalfWidth = 14;  // 箭身半宽
+    const headHalfWidth = 22;  // 箭头头部半宽
+    const arrowTop = -22;      // 箭头尖端
+    const arrowBottom = 22;    // 箭身底部
+
+    // 发光效果
     ctx.shadowBlur = 20;
     ctx.shadowColor = arrowColor;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = 2;
-    
+
+    // 绘制实心箭头
+    ctx.fillStyle = arrowColor;
     ctx.beginPath();
-    ctx.moveTo(0, arrowSize / 2);
-    ctx.lineTo(0, -arrowSize / 2);
+    ctx.moveTo(0, arrowTop);                                    // 尖端
+    ctx.lineTo(headHalfWidth, arrowTop + 12);                   // 右箭头翼
+    ctx.lineTo(bodyHalfWidth, arrowTop + 12);                   // 右肩
+    ctx.lineTo(bodyHalfWidth, arrowBottom);                     // 右下角
+    ctx.lineTo(-bodyHalfWidth, arrowBottom);                    // 左下角
+    ctx.lineTo(-bodyHalfWidth, arrowTop + 12);                  // 左肩
+    ctx.lineTo(-headHalfWidth, arrowTop + 12);                  // 左箭头翼
+    ctx.closePath();
+    ctx.fill();
+
+    // 高亮描边
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.moveTo(0, -arrowSize / 2);
-    ctx.lineTo(-arrowSize / 3, -arrowSize / 6);
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.moveTo(0, -arrowSize / 2);
-    ctx.lineTo(arrowSize / 3, -arrowSize / 6);
-    ctx.stroke();
-    
+
+    ctx.shadowBlur = 0;
     ctx.restore();
-    
+
     // 绘制等级文字
     ctx.save();
     ctx.globalAlpha = opacity;
