@@ -167,53 +167,47 @@ const soundManager = {
 };
 
 // ========== 震动反馈系统 ==========
+// Chrome 要求 navigator.vibrate() 必须在用户手势同步回调中调用，setTimeout 中调用会被拦截。
+// 策略：游戏事件（吃水果/升级/失败）只设置 pending，由下一次方向输入（用户手势）触发。
 const hapticManager = {
     enabled: true,
     _supported: typeof navigator.vibrate === 'function',
-    _primed: false,
+    _pending: null,
 
     toggle() {
         this.enabled = !this.enabled;
+        if (!this.enabled) {
+            try { navigator.vibrate(0); } catch (e) {} // 停止正在进行的震动
+        }
         return this.enabled;
     },
 
-    // 在用户手势中调用一次激活震动 API
-    prime() {
-        if (this.enabled && this._supported && !this._primed) {
-            try { navigator.vibrate(1); } catch (e) {}
-            this._primed = true;
-        }
-    },
-
-    _vibrate(pattern) {
+    // 必须在用户手势中调用（keydown / touchstart / click）
+    _vibrateNow(pattern) {
         if (!this.enabled || !this._supported) return;
         try { navigator.vibrate(pattern); } catch (e) {}
     },
 
-    // 方向变更：极短轻触
+    // 方向变更 + 冲刷 pending 震动。由用户手势直接调用，可靠触发。
     dirFeedback() {
-        this._vibrate(10);
+        if (!this.enabled || !this._supported) return;
+        if (this._pending !== null) {
+            const p = this._pending;
+            this._pending = null;
+            // 先触发 pending 震动，40ms 间隔后触发方向轻震
+            try { navigator.vibrate(Array.isArray(p) ? p.concat([40, 20]) : [p, 40, 20]); } catch (e) {
+                try { navigator.vibrate(20); } catch (e2) {}
+            }
+        } else {
+            try { navigator.vibrate(20); } catch (e) {}
+        }
     },
 
-    // 吃水果：短促单震
-    eatFeedback() {
-        this._vibrate(25);
-    },
-
-    // 升级：双震
-    levelUpFeedback() {
-        this._vibrate([30, 40, 30]);
-    },
-
-    // 通关（10级）：庆祝节奏
-    victoryFeedback() {
-        this._vibrate([40, 50, 40, 50, 40, 50, 120]);
-    },
-
-    // 失败：长震
-    gameOverFeedback() {
-        this._vibrate(200);
-    }
+    // 以下方法在 setTimeout(gameLoop) 中调用，只存 pending，不直接震动
+    eatFeedback()       { this._pending = 30; },
+    levelUpFeedback()   { this._pending = [35, 45, 35]; },
+    victoryFeedback()   { this._pending = [40, 50, 40, 50, 40, 50, 120]; },
+    gameOverFeedback()  { this._pending = 200; }
 };
 
 // 游戏状态
@@ -470,7 +464,12 @@ function startGame() {
     }
 
     soundManager.init();
-    hapticManager.prime();
+
+    // 冲刷可能存在的 game over pending 震动（用户手势中触发）
+    if (hapticManager._pending !== null) {
+        hapticManager._vibrateNow(hapticManager._pending);
+        hapticManager._pending = null;
+    }
 
     // 隐藏开始提示
     if (startHint) {
@@ -583,7 +582,6 @@ function resetGame() {
     particles.length = 0;  // 清空粒子
     updateDpadCenterIcon();
     soundManager.stopBackground();
-    hapticManager._primed = false;  // 下次开始重新激活震动
 
     startBtn.textContent = '▶ 开始';
     startBtn.disabled = false;
@@ -609,6 +607,11 @@ function resetGame() {
 
 // 重新开始
 function restartGame() {
+    // 在用户手势中立即触发游戏结束震动
+    if (hapticManager._pending !== null) {
+        hapticManager._vibrateNow(hapticManager._pending);
+        hapticManager._pending = null;
+    }
     resetGame();
     gameOverModal.classList.remove('show');
     startGame();
@@ -982,7 +985,6 @@ function endGame() {
     soundManager.stopBackground();
     soundManager.gameOverSound();
     hapticManager.gameOverFeedback();
-    hapticManager._primed = false;
 
     // 更新最高分
     if (gameState.score > gameState.highScore) {
