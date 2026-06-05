@@ -1,7 +1,7 @@
 // 游戏配置
 const GRID_SIZE = 20;
-let CANVAS_SIZE = 600;
-let CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
+const CANVAS_SIZE = 600;
+const CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
 
 // ========== 音效系统 ==========
 const soundManager = {
@@ -237,10 +237,10 @@ class Particle {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.vx = (Math.random() - 0.5) * 12;
-        this.vy = (Math.random() - 0.5) * 12;
+        this.vx = (Math.random() - 0.5) * 10;
+        this.vy = (Math.random() - 0.5) * 10;
         this.life = 1;
-        this.decay = 0.04;
+        this.decay = 0.10;
         this.size = Math.random() * 4 + 2;
     }
     
@@ -811,24 +811,23 @@ function getFruit(level) {
 // 自适应画布大小
 function resizeCanvas() {
     const isMobile = window.innerWidth <= 768;
-    let newSize;
+    // 画布内部分辨率始终 600×600，移动端只缩小 CSS 显示尺寸
+    canvas.width = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE;
+
     if (isMobile) {
         const padding = 32;
         const maxWidth = window.innerWidth - padding;
-        newSize = Math.floor(maxWidth / GRID_SIZE) * GRID_SIZE;
-        newSize = Math.max(300, newSize);
+        let displaySize = Math.floor(maxWidth / GRID_SIZE) * GRID_SIZE;
+        displaySize = Math.max(300, displaySize);
         const maxHeight = window.innerHeight - 360;
-        newSize = Math.min(newSize, Math.floor(maxHeight / GRID_SIZE) * GRID_SIZE);
+        displaySize = Math.min(displaySize, Math.floor(maxHeight / GRID_SIZE) * GRID_SIZE);
+        canvas.style.width = displaySize + 'px';
+        canvas.style.height = displaySize + 'px';
     } else {
-        newSize = 600;
+        canvas.style.width = '600px';
+        canvas.style.height = '600px';
     }
-
-    if (newSize === CANVAS_SIZE) return;
-
-    CANVAS_SIZE = newSize;
-    CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
-    canvas.width = CANVAS_SIZE;
-    canvas.height = CANVAS_SIZE;
 
     updateHintText();
     draw();
