@@ -564,7 +564,7 @@ body {
         padding: 8px;
         border-radius: 10px;
         gap: 8px;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .game-stage {

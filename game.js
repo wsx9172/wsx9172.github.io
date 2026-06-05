@@ -332,7 +332,7 @@ function addEventListeners() {
     document.addEventListener('keydown', handleKeyPress);
     window.addEventListener('resize', resizeCanvas);
     canvas.addEventListener('touchstart', handleTouchStart, false);
-    canvas.addEventListener('touchmove', handleTouchMove, false);
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     resetBtn.addEventListener('click', resetGame);
@@ -450,7 +450,7 @@ function handleTouchMove(e) {
                 gameState.directionQueue.push(direction);
             }
             gameState.nextDirection = direction;
-        hapticManager.dirFeedback();
+            hapticManager.dirFeedback();
             touchStartX = touchEndX;
             touchStartY = touchEndY;
         }
@@ -613,7 +613,6 @@ function restartGame() {
         hapticManager._pending = null;
     }
     resetGame();
-    gameOverModal.classList.remove('show');
     startGame();
 }
 
@@ -721,13 +720,19 @@ function gameLoop() {
 
 // 生成食物
 function generateFood() {
+    // 蛇占满网格 → 玩家胜利
+    if (gameState.snake.length >= GRID_SIZE * GRID_SIZE) {
+        endGame();
+        return;
+    }
+
     let foodX, foodY;
     let isOnSnake;
 
     do {
         foodX = Math.floor(Math.random() * GRID_SIZE);
         foodY = Math.floor(Math.random() * GRID_SIZE);
-        isOnSnake = gameState.snake.some(segment => 
+        isOnSnake = gameState.snake.some(segment =>
             segment.x === foodX && segment.y === foodY);
     } while (isOnSnake);
 
