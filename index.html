@@ -33,13 +33,22 @@
                 <button id="resetBtn" class="btn-control">重置</button>
             </div>
             
-            <p id="startHint" style="color: #4cff00; font-weight: bold;">按空格键开始游戏</p>
+            <p id="startHint" class="start-hint">按空格键开始游戏</p>
         </div>
         
         <div class="game-area">
             <div class="game-stage">
                 <div id="pauseHint" class="pause-hint" aria-live="polite"></div>
                 <canvas id="gameCanvas" width="600" height="600"></canvas>
+            </div>
+            <div class="dpad-container">
+                <div class="dpad">
+                    <button id="dpadUp" class="dpad-btn dpad-up" aria-label="向上">▲</button>
+                    <button id="dpadLeft" class="dpad-btn dpad-left" aria-label="向左">◄</button>
+                    <button id="dpadCenter" class="dpad-btn dpad-center" aria-label="开始/暂停">▶</button>
+                    <button id="dpadRight" class="dpad-btn dpad-right" aria-label="向右">►</button>
+                    <button id="dpadDown" class="dpad-btn dpad-down" aria-label="向下">▼</button>
+                </div>
             </div>
         </div>
         

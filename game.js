@@ -1,7 +1,7 @@
 // 游戏配置
 const GRID_SIZE = 20;
-const CANVAS_SIZE = 600;
-const CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
+let CANVAS_SIZE = 600;
+let CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
 
 // 游戏状态
 const gameState = {
@@ -111,13 +111,16 @@ function init() {
     pauseHint.textContent = '';
     updateDisplay();
     addEventListeners();
+    setupDpadControls();
     generateFood();
-    draw();
+    updateHintText();
+    resizeCanvas(); // 自适应画布大小并首次绘制
 }
 
 // 添加事件监听
 function addEventListeners() {
     document.addEventListener('keydown', handleKeyPress);
+    window.addEventListener('resize', resizeCanvas);
     canvas.addEventListener('touchstart', handleTouchStart, false);
     canvas.addEventListener('touchmove', handleTouchMove, false);
     startBtn.addEventListener('click', startGame);
@@ -341,12 +344,13 @@ function resetGame() {
     
     // 显示开始提示
     if (startHint) {
+        updateHintText();
         startHint.style.display = 'block';
     }
-    
+
     // 重置时显示鼠标
     canvas.style.cursor = 'default';
-    
+
     generateFood();
     updateDisplay();
     draw();
@@ -500,6 +504,87 @@ function getFruit(level) {
     return fruits[index];
 }
 
+// 自适应画布大小
+function resizeCanvas() {
+    const isMobile = window.innerWidth <= 768;
+    let newSize;
+    if (isMobile) {
+        const padding = 32;
+        const maxWidth = window.innerWidth - padding;
+        newSize = Math.floor(maxWidth / GRID_SIZE) * GRID_SIZE;
+        newSize = Math.max(300, newSize);
+        const maxHeight = window.innerHeight - 400;
+        newSize = Math.min(newSize, Math.floor(maxHeight / GRID_SIZE) * GRID_SIZE);
+    } else {
+        newSize = 600;
+    }
+
+    if (newSize === CANVAS_SIZE) return;
+
+    CANVAS_SIZE = newSize;
+    CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
+    canvas.width = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE;
+
+    updateHintText();
+    draw();
+}
+
+// 根据设备更新提示文字
+function updateHintText() {
+    if (!startHint) return;
+    const isMobile = window.innerWidth <= 768;
+    startHint.textContent = isMobile ? '点击中央按钮开始游戏' : '按空格键开始游戏';
+}
+
+// 移动端虚拟方向键
+function setupDpadControls() {
+    const dpadUp = document.getElementById('dpadUp');
+    const dpadDown = document.getElementById('dpadDown');
+    const dpadLeft = document.getElementById('dpadLeft');
+    const dpadRight = document.getElementById('dpadRight');
+    const dpadCenter = document.getElementById('dpadCenter');
+
+    if (!dpadUp) return; // 无 D-pad（桌面端不渲染）则跳过
+
+    function onDpadDirection(direction, e) {
+        e.preventDefault();
+        if (!gameState.isGameRunning || gameState.isPaused) return;
+
+        const lastDir = gameState.directionQueue.length > 0
+            ? gameState.directionQueue[gameState.directionQueue.length - 1]
+            : gameState.direction;
+
+        if (direction.x !== 0 && lastDir.x !== 0) return;
+        if (direction.y !== 0 && lastDir.y !== 0) return;
+
+        if (gameState.directionQueue.length < 2) {
+            gameState.directionQueue.push(direction);
+        }
+        gameState.nextDirection = direction;
+    }
+
+    function onDpadCenter(e) {
+        e.preventDefault();
+        if (!gameState.isGameRunning && !countdownTimer) {
+            startGame();
+        } else if (gameState.isGameRunning) {
+            togglePause();
+        }
+    }
+
+    dpadUp.addEventListener('touchstart', (e) => onDpadDirection({ x: 0, y: -1 }, e), { passive: false });
+    dpadUp.addEventListener('mousedown', (e) => onDpadDirection({ x: 0, y: -1 }, e));
+    dpadDown.addEventListener('touchstart', (e) => onDpadDirection({ x: 0, y: 1 }, e), { passive: false });
+    dpadDown.addEventListener('mousedown', (e) => onDpadDirection({ x: 0, y: 1 }, e));
+    dpadLeft.addEventListener('touchstart', (e) => onDpadDirection({ x: -1, y: 0 }, e), { passive: false });
+    dpadLeft.addEventListener('mousedown', (e) => onDpadDirection({ x: -1, y: 0 }, e));
+    dpadRight.addEventListener('touchstart', (e) => onDpadDirection({ x: 1, y: 0 }, e), { passive: false });
+    dpadRight.addEventListener('mousedown', (e) => onDpadDirection({ x: 1, y: 0 }, e));
+    dpadCenter.addEventListener('touchstart', (e) => onDpadCenter(e), { passive: false });
+    dpadCenter.addEventListener('mousedown', (e) => onDpadCenter(e));
+}
+
 // 触发升级动画
 function triggerLevelUpAnimation() {
     const color = getSnakeColor(gameState.level);
@@ -640,6 +725,7 @@ function endGame() {
     
     // 显示开始提示
     if (startHint) {
+        updateHintText();
         startHint.style.display = 'block';
     }
     
