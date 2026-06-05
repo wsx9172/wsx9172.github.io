@@ -169,17 +169,30 @@ const soundManager = {
 // ========== 震动反馈系统 ==========
 const hapticManager = {
     enabled: true,
-    _supported: 'vibrate' in navigator,
+    _supported: typeof navigator.vibrate === 'function',
+    _primed: false,
 
     toggle() {
         this.enabled = !this.enabled;
         return this.enabled;
     },
 
-    _vibrate(pattern) {
-        if (this.enabled && this._supported) {
-            navigator.vibrate(pattern);
+    // 在用户手势中调用一次激活震动 API
+    prime() {
+        if (this.enabled && this._supported && !this._primed) {
+            try { navigator.vibrate(1); } catch (e) {}
+            this._primed = true;
         }
+    },
+
+    _vibrate(pattern) {
+        if (!this.enabled || !this._supported) return;
+        try { navigator.vibrate(pattern); } catch (e) {}
+    },
+
+    // 方向变更：极短轻触
+    dirFeedback() {
+        this._vibrate(10);
     },
 
     // 吃水果：短促单震
@@ -395,6 +408,7 @@ function handleKeyPress(event) {
             gameState.directionQueue.push(direction);
         }
         gameState.nextDirection = direction;
+        hapticManager.dirFeedback();
     }
 }
 
@@ -442,6 +456,7 @@ function handleTouchMove(e) {
                 gameState.directionQueue.push(direction);
             }
             gameState.nextDirection = direction;
+        hapticManager.dirFeedback();
             touchStartX = touchEndX;
             touchStartY = touchEndY;
         }
@@ -455,6 +470,7 @@ function startGame() {
     }
 
     soundManager.init();
+    hapticManager.prime();
 
     // 隐藏开始提示
     if (startHint) {
@@ -526,18 +542,25 @@ function togglePause() {
         if (gameState.isPaused) {
             pauseHint.textContent = '⏸';
             pauseHint.classList.add('visible');
-            
+
             // 暂停时显示鼠标
             canvas.style.cursor = 'default';
+
+            // 暂停背景音乐
+            soundManager.stopBackground();
         } else {
             // 从暂停恢复时显示倒计时
             pauseBtn.disabled = true;
             showCountdown(() => {
                 pauseBtn.disabled = false;
-                
+
                 // 恢复游戏后隐藏鼠标
                 canvas.style.cursor = 'none';
                 updateDpadCenterIcon();
+
+                // 恢复背景音乐
+                soundManager.startBackground();
+                soundManager.updateBgTempo(gameState.level);
 
                 gameLoop();
             });
@@ -560,6 +583,7 @@ function resetGame() {
     particles.length = 0;  // 清空粒子
     updateDpadCenterIcon();
     soundManager.stopBackground();
+    hapticManager._primed = false;  // 下次开始重新激活震动
 
     startBtn.textContent = '▶ 开始';
     startBtn.disabled = false;
@@ -810,6 +834,7 @@ function setupDpadControls() {
             gameState.directionQueue.push(direction);
         }
         gameState.nextDirection = direction;
+        hapticManager.dirFeedback();
     }
 
     function onDpadCenter(e) {
@@ -957,6 +982,7 @@ function endGame() {
     soundManager.stopBackground();
     soundManager.gameOverSound();
     hapticManager.gameOverFeedback();
+    hapticManager._primed = false;
 
     // 更新最高分
     if (gameState.score > gameState.highScore) {
