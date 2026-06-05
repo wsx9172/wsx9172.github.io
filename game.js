@@ -63,6 +63,7 @@ const gameOverModal = document.getElementById('gameOverModal');
 const finalScoreDisplay = document.getElementById('finalScore');
 const finalHighScoreDisplay = document.getElementById('finalHighScore');
 const pauseHint = document.getElementById('pauseHint');
+const startHint = document.getElementById('startHint');
 
 let countdownTimer = null;
 
@@ -124,6 +125,9 @@ function handleKeyPress(event) {
         case ' ':
             if (gameOverModal.classList.contains('show')) {
                 restartGame();
+            } else if (!gameState.isGameRunning && !countdownTimer) {
+                // 游戏未开始且没有倒计时时，按空格开始游戏
+                startGame();
             } else if (gameState.isGameRunning) {
                 togglePause();
             }
@@ -194,6 +198,11 @@ function handleTouchMove(e) {
 function startGame() {
     if (gameState.isGameRunning || countdownTimer) {
         return;
+    }
+
+    // 隐藏开始提示
+    if (startHint) {
+        startHint.style.display = 'none';
     }
 
     gameState.isGameRunning = false;
@@ -284,6 +293,11 @@ function resetGame() {
     pauseBtn.disabled = true;
     pauseHint.textContent = '';
     pauseHint.classList.remove('visible');
+    
+    // 显示开始提示
+    if (startHint) {
+        startHint.style.display = 'block';
+    }
     
     generateFood();
     updateDisplay();
@@ -410,6 +424,11 @@ function endGame() {
     startBtn.disabled = false;
     pauseBtn.textContent = '⏸ 暂停';
     pauseBtn.disabled = true;
+    
+    // 显示开始提示
+    if (startHint) {
+        startHint.style.display = 'block';
+    }
 }
 
 // 更新显示
