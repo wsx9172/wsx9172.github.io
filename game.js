@@ -33,6 +33,8 @@ const gameOverModal = document.getElementById('gameOverModal');
 const finalScoreDisplay = document.getElementById('finalScore');
 const finalHighScoreDisplay = document.getElementById('finalHighScore');
 
+let countdownTimer = null;
+
 // 初始化
 function init() {
     highScoreDisplay.textContent = gameState.highScore;
@@ -93,13 +95,42 @@ function handleKeyPress(event) {
 
 // 开始游戏
 function startGame() {
-    if (!gameState.isGameRunning) {
+    if (gameState.isGameRunning || countdownTimer) {
+        return;
+    }
+
+    clearCountdownTimer();
+    gameState.isGameRunning = false;
+    gameState.isPaused = false;
+    startBtn.disabled = true;
+    pauseBtn.disabled = true;
+    startBtn.textContent = '3 秒后开始';
+
+    let remainingSeconds = 3;
+    function countdownTick() {
+        remainingSeconds -= 1;
+        if (remainingSeconds > 0) {
+            startBtn.textContent = `${remainingSeconds} 秒后开始`;
+            countdownTimer = setTimeout(countdownTick, 1000);
+            return;
+        }
+
+        clearCountdownTimer();
         gameState.isGameRunning = true;
         gameState.isPaused = false;
         startBtn.textContent = '游戏中';
         startBtn.disabled = true;
         pauseBtn.disabled = false;
         gameLoop();
+    }
+
+    countdownTimer = setTimeout(countdownTick, 1000);
+}
+
+function clearCountdownTimer() {
+    if (countdownTimer) {
+        clearTimeout(countdownTimer);
+        countdownTimer = null;
     }
 }
 
@@ -116,6 +147,7 @@ function togglePause() {
 
 // 重置游戏
 function resetGame() {
+    clearCountdownTimer();
     gameState.snake = [{ x: 10, y: 10 }];
     gameState.direction = { x: 1, y: 0 };
     gameState.nextDirection = { x: 1, y: 0 };
@@ -219,6 +251,7 @@ function generateFood() {
 
 // 游戏结束
 function endGame() {
+    clearCountdownTimer();
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     
