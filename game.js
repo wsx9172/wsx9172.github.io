@@ -89,57 +89,64 @@ const soundManager = {
         this._tone(262, t + 0.44, 0.35, 'sawtooth', 0.06);
     },
 
-    // 全局背景音：低频环境嗡鸣 + 轻柔节奏
+    // ===== 全局背景音乐：五声音阶旋律循环 =====
+    _bgTimer: null,
+    _bgNoteIndex: 0,
+    _bgTempo: 220, // ms/音符，随等级加快
+
+    // 五声音阶旋律序列（C5→A5 范围，上行下行交替）
+    _bgMelody: [
+        523, 587, 659, 784, 880,       // C5 D5 E5 G5 A5 上行
+        1047, 880, 784, 659, 587,      // C6 A5 G5 E5 D5 下行
+        523, 659, 784, 880, 1047,      // C5 E5 G5 A5 C6 跳进
+        880, 784, 659, 523, 587,       // A5 G5 E5 C5 D5 收尾
+    ],
+
     startBackground() {
-        if (!this.enabled || !this.ctx || this.bgNodes) return;
+        if (!this.enabled || !this.ctx || this._bgTimer) return;
         this.resume();
-        const nodes = {};
+        this._bgNoteIndex = 0;
+        this._bgTempo = 220;
+        this._bgPlayTick();
+    },
 
-        // 低频嗡鸣基底
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const filt = this.ctx.createBiquadFilter();
-        osc.type = 'sine';
-        osc.frequency.value = 55;
-        filt.type = 'lowpass';
-        filt.frequency.value = 200;
-        gain.gain.value = 0.025;
-        osc.connect(filt);
-        filt.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
+    _bgPlayTick() {
+        if (!this.enabled || !this.ctx) {
+            this._bgTimer = null;
+            return;
+        }
+        this.resume();
 
-        // LFO 缓慢调制频率增加变化
-        const lfo = this.ctx.createOscillator();
-        const lfoGain = this.ctx.createGain();
-        lfo.frequency.value = 0.15;
-        lfoGain.gain.value = 8;
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start();
+        const note = this._bgMelody[this._bgNoteIndex];
+        const dur = this._bgTempo / 1000;
+        const t = this.ctx.currentTime;
 
-        nodes.osc = osc; nodes.gain = gain; nodes.filt = filt;
-        nodes.lfo = lfo; nodes.lfoGain = lfoGain;
+        // 主旋律：三角波，轻柔
+        this._tone(note, t, dur * 0.75, 'triangle', 0.05);
 
-        // 轻柔节拍（每 2 秒一个低音脉冲）
-        this._bgBeatInterval = setInterval(() => {
-            if (!this.enabled || !this.ctx) return;
-            const t = this.ctx.currentTime;
-            this._tone(82, t, 0.15, 'sine', 0.04);
-        }, 2000);
+        // 每 4 拍加低音根音
+        if (this._bgNoteIndex % 4 === 0) {
+            this._tone(note / 4, t, dur * 1.3, 'sine', 0.025);
+        }
 
-        this.bgNodes = nodes;
+        this._bgNoteIndex = (this._bgNoteIndex + 1) % this._bgMelody.length;
+        this._bgTimer = setTimeout(() => this._bgPlayTick(), this._bgTempo);
+    },
+
+    // 随等级加快 BGM 节奏
+    updateBgTempo(level) {
+        this._bgTempo = Math.max(75, 220 - (level - 1) * 16);
     },
 
     stopBackground() {
-        if (this._bgBeatInterval) {
-            clearInterval(this._bgBeatInterval);
-            this._bgBeatInterval = null;
+        if (this._bgTimer) {
+            clearTimeout(this._bgTimer);
+            this._bgTimer = null;
         }
         if (this.bgNodes) {
             Object.values(this.bgNodes).forEach(n => {
-                try { n.stop(); } catch (e) { /* already stopped */ }
-                try { n.disconnect(); } catch (e) { /* already disconnected */ }
+                try { n.stop(); } catch (e) {}
+                try { n.disconnect(); } catch (e) {}
             });
             this.bgNodes = null;
         }
@@ -156,6 +163,43 @@ const soundManager = {
             const t = this.ctx.currentTime;
             this._tone(110, t, 0.06, 'sine', 0.03);
         }
+    }
+};
+
+// ========== 震动反馈系统 ==========
+const hapticManager = {
+    enabled: true,
+    _supported: 'vibrate' in navigator,
+
+    toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+    },
+
+    _vibrate(pattern) {
+        if (this.enabled && this._supported) {
+            navigator.vibrate(pattern);
+        }
+    },
+
+    // 吃水果：短促单震
+    eatFeedback() {
+        this._vibrate(25);
+    },
+
+    // 升级：双震
+    levelUpFeedback() {
+        this._vibrate([30, 40, 30]);
+    },
+
+    // 通关（10级）：庆祝节奏
+    victoryFeedback() {
+        this._vibrate([40, 50, 40, 50, 40, 50, 120]);
+    },
+
+    // 失败：长震
+    gameOverFeedback() {
+        this._vibrate(200);
     }
 };
 
@@ -255,6 +299,7 @@ const finalHighScoreDisplay = document.getElementById('finalHighScore');
 const pauseHint = document.getElementById('pauseHint');
 const startHint = document.getElementById('startHint');
 const soundToggleBtn = document.getElementById('soundToggleBtn');
+const vibeToggleBtn = document.getElementById('vibeToggleBtn');
 
 let countdownTimer = null;
 
@@ -292,6 +337,12 @@ function addEventListeners() {
         const on = soundManager.toggle();
         soundToggleBtn.textContent = on ? '🔊' : '🔇';
         soundToggleBtn.classList.toggle('muted', !on);
+    });
+
+    vibeToggleBtn.addEventListener('click', () => {
+        const on = hapticManager.toggle();
+        vibeToggleBtn.textContent = on ? '📳' : '🔕';
+        vibeToggleBtn.classList.toggle('muted', !on);
     });
 }
 
@@ -402,6 +453,8 @@ function startGame() {
     if (gameState.isGameRunning || countdownTimer) {
         return;
     }
+
+    soundManager.init();
 
     // 隐藏开始提示
     if (startHint) {
@@ -603,6 +656,7 @@ function gameLoop() {
         
         gameState.score += gameState.level;
         soundManager.eatSound();
+        hapticManager.eatFeedback();
 
         // 检查是否升级
         const foodEaten = Math.floor(gameState.score / gameState.level);
@@ -612,8 +666,11 @@ function gameLoop() {
             gameState.gameSpeed = Math.max(50, 120 - (gameState.level - 1) * 10);
 
             soundManager.levelUpSound();
+            hapticManager.levelUpFeedback();
+            soundManager.updateBgTempo(gameState.level);
             if (gameState.level === 10) {
                 soundManager.victorySound();
+                hapticManager.victoryFeedback();
             }
 
             // 触发升级动画
@@ -899,6 +956,7 @@ function endGame() {
 
     soundManager.stopBackground();
     soundManager.gameOverSound();
+    hapticManager.gameOverFeedback();
 
     // 更新最高分
     if (gameState.score > gameState.highScore) {
