@@ -215,6 +215,10 @@ function startGame() {
         gameState.isPaused = false;
         startBtn.disabled = true;
         pauseBtn.disabled = false;
+        
+        // 隐藏鼠标
+        canvas.style.cursor = 'none';
+        
         gameLoop();
     });
 }
@@ -262,11 +266,18 @@ function togglePause() {
         if (gameState.isPaused) {
             pauseHint.textContent = '⏸';
             pauseHint.classList.add('visible');
+            
+            // 暂停时显示鼠标
+            canvas.style.cursor = 'default';
         } else {
             // 从暂停恢复时显示倒计时
             pauseBtn.disabled = true;
             showCountdown(() => {
                 pauseBtn.disabled = false;
+                
+                // 恢复游戏后隐藏鼠标
+                canvas.style.cursor = 'none';
+                
                 gameLoop();
             });
         }
@@ -298,6 +309,9 @@ function resetGame() {
     if (startHint) {
         startHint.style.display = 'block';
     }
+    
+    // 重置时显示鼠标
+    canvas.style.cursor = 'default';
     
     generateFood();
     updateDisplay();
@@ -429,6 +443,9 @@ function endGame() {
     if (startHint) {
         startHint.style.display = 'block';
     }
+    
+    // 游戏结束时显示鼠标
+    canvas.style.cursor = 'default';
 }
 
 // 更新显示
@@ -542,7 +559,7 @@ function drawSnakeHead(x, y, size) {
         eye1X = x + size / 2 - eyeSize / 2;
         eye1Y = y + eyeSize / 2;
         eye2X = x + size / 2 + eyeSize / 2;
-        eye2Y = y + eyeSize / 2;
+        eye2Y = y + size / 2;
     } else if (gameState.direction.y > 0) {
         eye1X = x + size / 2 - eyeSize / 2;
         eye1Y = y + size - eyeSize * 2;
