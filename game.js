@@ -49,6 +49,40 @@ class Particle {
     }
 }
 
+// 升级动画粒子
+class LevelUpParticle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 3;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.life = 1;
+        this.decay = 0.015;
+        this.size = Math.random() * 6 + 3;
+        this.color = color;
+    }
+    
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.98; // 阻力
+        this.vy *= 0.98;
+        this.life -= this.decay;
+    }
+    
+    draw(ctx) {
+        ctx.fillStyle = this.color.replace('1)', `${this.life})`);
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color.replace('1)', '0.5)');
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+}
+
 // 获取 DOM 元素
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -366,11 +400,28 @@ function gameLoop() {
 
     // 检查是否吃到食物
     if (newHead.x === gameState.food.x && newHead.y === gameState.food.y) {
-        // 生成粒子效果
+        // 获取当前水果信息
+        const fruit = getFruit(gameState.level);
+        
+        // 生成粒子效果（使用水果颜色）
         const foodScreenX = gameState.food.x * CELL_SIZE + CELL_SIZE / 2;
         const foodScreenY = gameState.food.y * CELL_SIZE + CELL_SIZE / 2;
         for (let i = 0; i < 8; i++) {
-            particles.push(new Particle(foodScreenX, foodScreenY));
+            const particle = new Particle(foodScreenX, foodScreenY);
+            // 修改粒子颜色为水果颜色
+            const rgbMatch = fruit.color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (rgbMatch) {
+                const r = parseInt(rgbMatch[1]);
+                const g = parseInt(rgbMatch[2]);
+                const b = parseInt(rgbMatch[3]);
+                particle.draw = function(ctx) {
+                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${this.life * 0.8})`;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                };
+            }
+            particles.push(particle);
         }
         
         gameState.score += gameState.level;
@@ -381,6 +432,9 @@ function gameLoop() {
         if (newLevel > gameState.level) {
             gameState.level = newLevel;
             gameState.gameSpeed = Math.max(50, 100 - (gameState.level - 1) * 10);
+            
+            // 触发升级动画
+            triggerLevelUpAnimation();
         }
 
         generateFood();
@@ -410,6 +464,167 @@ function generateFood() {
     } while (isOnSnake);
 
     gameState.food = { x: foodX, y: foodY };
+}
+
+// 获取蛇的颜色（根据等级）
+function getSnakeColor(level) {
+    const colors = [
+        'rgba(76, 255, 0, 1)',      // 1级 - 绿色
+        'rgba(0, 255, 255, 1)',     // 2级 - 青色
+        'rgba(255, 255, 0, 1)',     // 3级 - 黄色
+        'rgba(255, 165, 0, 1)',     // 4级 - 橙色
+        'rgba(255, 100, 100, 1)',   // 5级 - 红色
+        'rgba(255, 0, 255, 1)',     // 6级+ - 紫色
+    ];
+    
+    const index = Math.min(level - 1, colors.length - 1);
+    return colors[index];
+}
+
+// 获取水果（根据等级）
+function getFruit(level) {
+    const fruits = [
+        { emoji: '🍎', name: '苹果', value: 1, color: 'rgba(255, 100, 100, 1)' },      // 1级
+        { emoji: '🍊', name: '橙子', value: 2, color: 'rgba(255, 165, 0, 1)' },       // 2级
+        { emoji: '🍋', name: '柠檬', value: 3, color: 'rgba(255, 255, 0, 1)' },       // 3级
+        { emoji: '🍇', name: '葡萄', value: 4, color: 'rgba(128, 0, 128, 1)' },       // 4级
+        { emoji: '🍓', name: '草莓', value: 5, color: 'rgba(255, 20, 147, 1)' },      // 5级
+        { emoji: '🍑', name: '桃子', value: 6, color: 'rgba(255, 182, 193, 1)' },     // 6级
+        { emoji: '🍒', name: '樱桃', value: 7, color: 'rgba(220, 20, 60, 1)' },       // 7级
+        { emoji: '🥝', name: '猕猴桃', value: 8, color: 'rgba(107, 142, 35, 1)' },    // 8级
+        { emoji: '🍍', name: '菠萝', value: 9, color: 'rgba(255, 215, 0, 1)' },       // 9级
+        { emoji: '💎', name: '钻石', value: 10, color: 'rgba(0, 191, 255, 1)' },      // 10级+
+    ];
+    
+    const index = Math.min(level - 1, fruits.length - 1);
+    return fruits[index];
+}
+
+// 触发升级动画
+function triggerLevelUpAnimation() {
+    const color = getSnakeColor(gameState.level);
+    
+    // 在蛇头位置生成升级粒子
+    const head = gameState.snake[0];
+    const centerX = head.x * CELL_SIZE + CELL_SIZE / 2;
+    const centerY = head.y * CELL_SIZE + CELL_SIZE / 2;
+    
+    for (let i = 0; i < 30; i++) {
+        particles.push(new LevelUpParticle(centerX, centerY, color));
+    }
+    
+    // 显示升级提示（使用Canvas绘制）
+    showLevelUpMessage();
+}
+
+// 显示升级提示（在Canvas上绘制）
+let levelUpAnimationState = {
+    active: false,
+    startTime: 0,
+    duration: 2000, // 2秒
+    level: 1
+};
+
+function showLevelUpMessage() {
+    levelUpAnimationState.active = true;
+    levelUpAnimationState.startTime = Date.now();
+    levelUpAnimationState.level = gameState.level;
+}
+
+// 绘制升级动画
+function drawLevelUpAnimation() {
+    if (!levelUpAnimationState.active) return;
+    
+    const elapsed = Date.now() - levelUpAnimationState.startTime;
+    const progress = Math.min(elapsed / levelUpAnimationState.duration, 1);
+    
+    if (progress >= 1) {
+        levelUpAnimationState.active = false;
+        return;
+    }
+    
+    const centerX = CANVAS_SIZE / 2;
+    const centerY = CANVAS_SIZE / 2 - 50;
+    
+    // 计算透明度（淡入淡出）
+    let opacity;
+    if (progress < 0.2) {
+        opacity = progress / 0.2; // 淡入
+    } else if (progress > 0.8) {
+        opacity = (1 - progress) / 0.2; // 淡出
+    } else {
+        opacity = 1;
+    }
+    
+    // 计算缩放效果
+    const scale = 1 + Math.sin(progress * Math.PI) * 0.2;
+    
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.translate(centerX, centerY);
+    ctx.scale(scale, scale);
+    
+    // 绘制向上箭头
+    const arrowSize = 40;
+    const arrowColor = 'rgba(255, 215, 0, 1)'; // 金色
+    
+    ctx.strokeStyle = arrowColor;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    // 箭头主体（竖线）
+    ctx.beginPath();
+    ctx.moveTo(0, arrowSize / 2);
+    ctx.lineTo(0, -arrowSize / 2);
+    ctx.stroke();
+    
+    // 箭头头部（左斜线）
+    ctx.beginPath();
+    ctx.moveTo(0, -arrowSize / 2);
+    ctx.lineTo(-arrowSize / 3, -arrowSize / 6);
+    ctx.stroke();
+    
+    // 箭头头部（右斜线）
+    ctx.beginPath();
+    ctx.moveTo(0, -arrowSize / 2);
+    ctx.lineTo(arrowSize / 3, -arrowSize / 6);
+    ctx.stroke();
+    
+    // 添加发光效果
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = arrowColor;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    ctx.moveTo(0, arrowSize / 2);
+    ctx.lineTo(0, -arrowSize / 2);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(0, -arrowSize / 2);
+    ctx.lineTo(-arrowSize / 3, -arrowSize / 6);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(0, -arrowSize / 2);
+    ctx.lineTo(arrowSize / 3, -arrowSize / 6);
+    ctx.stroke();
+    
+    ctx.restore();
+    
+    // 绘制等级文字
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.font = 'bold 24px "Segoe UI", Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255, 215, 0, 1)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+    ctx.fillText(`Level ${levelUpAnimationState.level}`, centerX, centerY + 50);
+    ctx.restore();
 }
 
 // 游戏结束
@@ -476,6 +691,7 @@ function draw() {
     }
 
     // 绘制蛇
+    const snakeColor = getSnakeColor(gameState.level);
     gameState.snake.forEach((segment, index) => {
         const x = segment.x * CELL_SIZE;
         const y = segment.y * CELL_SIZE;
@@ -483,11 +699,11 @@ function draw() {
 
         if (index === 0) {
             // 绘制蛇头
-            drawSnakeHead(x, y, size);
+            drawSnakeHead(x, y, size, snakeColor);
         } else {
             // 绘制蛇身，颜色渐变
             const opacity = 1 - (index / gameState.snake.length) * 0.5;
-            drawSnakeSegment(x, y, size, opacity, index);
+            drawSnakeSegment(x, y, size, opacity, index, snakeColor);
         }
     });
 
@@ -503,13 +719,16 @@ function draw() {
             particles.splice(i, 1);
         }
     }
+    
+    // 绘制升级动画
+    drawLevelUpAnimation();
 }
 
 // 绘制蛇头
-function drawSnakeHead(x, y, size) {
+function drawSnakeHead(x, y, size, baseColor) {
     // 蛇头主体 - 圆角矩形
     const radius = size / 2;
-    ctx.fillStyle = 'rgba(76, 255, 0, 0.95)';
+    ctx.fillStyle = baseColor.replace('1)', '0.95)');
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + size - radius, y);
@@ -523,7 +742,8 @@ function drawSnakeHead(x, y, size) {
     ctx.fill();
 
     // 蛇头发光效果
-    ctx.fillStyle = 'rgba(100, 255, 0, 0.3)';
+    const glowColor = baseColor.replace('1)', '0.3)');
+    ctx.fillStyle = glowColor;
     ctx.beginPath();
     ctx.moveTo(x + radius, y - 1);
     ctx.lineTo(x + size - radius, y - 1);
@@ -578,9 +798,10 @@ function drawSnakeHead(x, y, size) {
 
     // 增强方向指示效果
     ctx.save();
-    ctx.fillStyle = 'rgba(120, 255, 120, 0.25)';
+    const indicatorColor = baseColor.replace('1)', '0.25)');
+    ctx.fillStyle = indicatorColor;
     ctx.shadowBlur = 10;
-    ctx.shadowColor = 'rgba(120, 255, 120, 0.8)';
+    ctx.shadowColor = baseColor.replace('1)', '0.8)');
     ctx.beginPath();
     if (gameState.direction.x > 0) {
         ctx.moveTo(x + size * 0.78, y + size * 0.35);
@@ -623,15 +844,25 @@ function drawSnakeHead(x, y, size) {
 }
 
 // 绘制蛇身体
-function drawSnakeSegment(x, y, size, opacity, index) {
-    const hue = (index * 20) % 360;
+function drawSnakeSegment(x, y, size, opacity, index, baseColor) {
+    // 从基础颜色提取RGB值
+    const rgbMatch = baseColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (rgbMatch) {
+        const r = parseInt(rgbMatch[1]);
+        const g = parseInt(rgbMatch[2]);
+        const b = parseInt(rgbMatch[3]);
+        
+        // 蛇身 - 圆角矩形，颜色渐变
+        const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${opacity * 0.9})`);
+        gradient.addColorStop(1, `rgba(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)}, ${opacity * 0.8})`);
+        
+        ctx.fillStyle = gradient;
+    } else {
+        // 备用方案
+        ctx.fillStyle = `rgba(76, 255, 0, ${opacity * 0.9})`;
+    }
     
-    // 蛇身 - 圆角矩形，颜色略有不同
-    const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
-    gradient.addColorStop(0, `hsla(130, 100%, 50%, ${opacity * 0.9})`);
-    gradient.addColorStop(1, `hsla(110, 90%, 40%, ${opacity * 0.8})`);
-    
-    ctx.fillStyle = gradient;
     const radius = size / 4;
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -651,24 +882,24 @@ function drawFood(x, y) {
     const size = CELL_SIZE - 2;
     const centerX = x + size / 2;
     const centerY = y + size / 2;
+    
+    // 获取当前等级的水果
+    const fruit = getFruit(gameState.level);
 
-    // 画苹果外圈光晕
+    // 画水果外圈光晕（使用水果对应颜色）
     const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size);
-    glowGradient.addColorStop(0, 'rgba(255, 100, 100, 0.35)');
-    glowGradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
+    glowGradient.addColorStop(0, fruit.color.replace('1)', '0.35)'));
+    glowGradient.addColorStop(1, fruit.color.replace('1)', '0)'));
     ctx.fillStyle = glowGradient;
     ctx.beginPath();
     ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
     ctx.fill();
 
-    // 用苹果 emoji 作为食物图形
+    // 用水果 emoji 作为食物图形
     ctx.save();
     ctx.font = `${Math.max(16, size * 0.9)}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🍎', centerX, centerY + 1);
+    ctx.fillText(fruit.emoji, centerX, centerY + 1);
     ctx.restore();
 }
-
-// 初始化游戏
-init();
