@@ -253,7 +253,8 @@ function startGame() {
         gameState.isPaused = false;
         startBtn.disabled = true;
         pauseBtn.disabled = false;
-        
+        updateDpadCenterIcon();
+
         // 隐藏鼠标
         canvas.style.cursor = 'none';
         
@@ -300,6 +301,7 @@ function togglePause() {
     if (gameState.isGameRunning) {
         gameState.isPaused = !gameState.isPaused;
         pauseBtn.textContent = gameState.isPaused ? '▶ 继续' : '⏸ 暂停';
+        updateDpadCenterIcon();
         
         if (gameState.isPaused) {
             pauseHint.textContent = '⏸';
@@ -315,7 +317,8 @@ function togglePause() {
                 
                 // 恢复游戏后隐藏鼠标
                 canvas.style.cursor = 'none';
-                
+                updateDpadCenterIcon();
+
                 gameLoop();
             });
         }
@@ -335,7 +338,8 @@ function resetGame() {
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     particles.length = 0;  // 清空粒子
-    
+    updateDpadCenterIcon();
+
     startBtn.textContent = '▶ 开始';
     startBtn.disabled = false;
     pauseBtn.textContent = '⏸ 暂停';
@@ -538,6 +542,17 @@ function updateHintText() {
     startHint.textContent = isMobile ? '点击中央按钮开始游戏' : '按空格键开始游戏';
 }
 
+// 更新 D-pad 中央按钮图标
+function updateDpadCenterIcon() {
+    const dpadCenter = document.getElementById('dpadCenter');
+    if (!dpadCenter) return;
+    if (gameState.isGameRunning && !gameState.isPaused) {
+        dpadCenter.textContent = '⏸';
+    } else {
+        dpadCenter.textContent = '▶';
+    }
+}
+
 // 移动端虚拟方向键
 function setupDpadControls() {
     const dpadUp = document.getElementById('dpadUp');
@@ -705,7 +720,8 @@ function endGame() {
     pauseHint.textContent = '';
     pauseHint.classList.remove('visible');
     particles.length = 0;  // 清空粒子
-    
+    updateDpadCenterIcon();
+
     // 更新最高分
     if (gameState.score > gameState.highScore) {
         gameState.highScore = gameState.score;
