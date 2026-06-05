@@ -234,10 +234,10 @@ class Particle {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.vx = (Math.random() - 0.5) * 8;
-        this.vy = (Math.random() - 0.5) * 8;
+        this.vx = (Math.random() - 0.5) * 12;
+        this.vy = (Math.random() - 0.5) * 12;
         this.life = 1;
-        this.decay = 0.02;
+        this.decay = 0.04;
         this.size = Math.random() * 4 + 2;
     }
     
