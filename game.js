@@ -101,32 +101,18 @@ function startGame() {
         return;
     }
 
-    clearCountdownTimer();
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     startBtn.disabled = true;
     pauseBtn.disabled = true;
-    startBtn.textContent = '3 秒后开始';
 
-    let remainingSeconds = 3;
-    function countdownTick() {
-        remainingSeconds -= 1;
-        if (remainingSeconds > 0) {
-            startBtn.textContent = `${remainingSeconds} 秒后开始`;
-            countdownTimer = setTimeout(countdownTick, 1000);
-            return;
-        }
-
-        clearCountdownTimer();
+    showCountdown(() => {
         gameState.isGameRunning = true;
         gameState.isPaused = false;
-        startBtn.textContent = '游戏中';
         startBtn.disabled = true;
         pauseBtn.disabled = false;
         gameLoop();
-    }
-
-    countdownTimer = setTimeout(countdownTick, 1000);
+    });
 }
 
 function clearCountdownTimer() {
@@ -136,14 +122,49 @@ function clearCountdownTimer() {
     }
 }
 
+// 显示倒计时
+function showCountdown(callback) {
+    clearCountdownTimer();
+    let remainingSeconds = 3;
+    
+    function countdownTick() {
+        pauseHint.textContent = remainingSeconds;
+        pauseHint.classList.add('visible');
+        
+        remainingSeconds -= 1;
+        if (remainingSeconds >= 0) {
+            countdownTimer = setTimeout(countdownTick, 1000);
+            return;
+        }
+
+        clearCountdownTimer();
+        pauseHint.classList.remove('visible');
+        pauseHint.textContent = '';
+        
+        if (callback) {
+            callback();
+        }
+    }
+
+    countdownTimer = setTimeout(countdownTick, 1000);
+}
+
 // 暂停/继续
 function togglePause() {
     if (gameState.isGameRunning) {
         gameState.isPaused = !gameState.isPaused;
-        pauseBtn.textContent = gameState.isPaused ? '继续' : '暂停';
-        pauseHint.textContent = gameState.isPaused ? '已暂停' : '';
-        if (!gameState.isPaused) {
-            gameLoop();
+        pauseBtn.textContent = gameState.isPaused ? '▶ 继续' : '⏸ 暂停';
+        
+        if (gameState.isPaused) {
+            pauseHint.textContent = '⏸';
+            pauseHint.classList.add('visible');
+        } else {
+            // 从暂停恢复时显示倒计时
+            pauseBtn.disabled = true;
+            showCountdown(() => {
+                pauseBtn.disabled = false;
+                gameLoop();
+            });
         }
     }
 }
@@ -160,11 +181,12 @@ function resetGame() {
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     
-    startBtn.textContent = '开始';
+    startBtn.textContent = '▶ 开始';
     startBtn.disabled = false;
-    pauseBtn.textContent = '暂停';
+    pauseBtn.textContent = '⏸ 暂停';
     pauseBtn.disabled = true;
     pauseHint.textContent = '';
+    pauseHint.classList.remove('visible');
     
     generateFood();
     updateDisplay();
@@ -259,6 +281,7 @@ function endGame() {
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     pauseHint.textContent = '';
+    pauseHint.classList.remove('visible');
     
     // 更新最高分
     if (gameState.score > gameState.highScore) {
@@ -273,9 +296,9 @@ function endGame() {
     gameOverModal.classList.add('show');
 
     // 重置按钮状态
-    startBtn.textContent = '开始';
+    startBtn.textContent = '▶ 开始';
     startBtn.disabled = false;
-    pauseBtn.textContent = '暂停';
+    pauseBtn.textContent = '⏸ 暂停';
     pauseBtn.disabled = true;
 }
 
