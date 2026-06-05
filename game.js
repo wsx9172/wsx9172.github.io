@@ -846,9 +846,9 @@ function updateDpadCenterIcon() {
     const dpadCenter = document.getElementById('dpadCenter');
     if (!dpadCenter) return;
     if (gameState.isGameRunning && !gameState.isPaused) {
-        dpadCenter.textContent = '⏸';
+        dpadCenter.innerHTML = '<span class="icon-pause"></span>';
     } else {
-        dpadCenter.textContent = '▶';
+        dpadCenter.innerHTML = '<span class="icon-play"></span>';
     }
 }
 

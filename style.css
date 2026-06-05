@@ -496,6 +496,32 @@ body {
     background: rgba(255, 215, 0, 0.3);
 }
 
+/* CSS 绘制的播放图标（右向三角） */
+.icon-play {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 16px solid #fff;
+    margin-left: 3px;
+}
+
+/* CSS 绘制的暂停图标（双竖线） */
+.icon-pause {
+    display: inline-flex;
+    gap: 5px;
+}
+.icon-pause::before,
+.icon-pause::after {
+    content: '';
+    display: block;
+    width: 5px;
+    height: 18px;
+    background: #fff;
+    border-radius: 2px;
+}
+
 /* 桌面端隐藏 D-pad */
 @media (min-width: 769px) {
     .dpad-container {
@@ -534,9 +560,10 @@ body {
         margin-bottom: 0;
         text-align: center;
         color: #ffffff;
-        -webkit-text-fill-color: #ffffff;
-        background: none;
+        background: transparent;
+        -webkit-text-fill-color: currentColor;
         -webkit-background-clip: border-box;
+        background-clip: border-box;
     }
 
     .stats-panel {
@@ -586,6 +613,18 @@ body {
         width: 30px;
         height: 30px;
         font-size: 0.8em;
+    }
+
+    .icon-play {
+        border-top-width: 8px;
+        border-bottom-width: 8px;
+        border-left-width: 13px;
+    }
+
+    .icon-pause::before,
+    .icon-pause::after {
+        width: 4px;
+        height: 15px;
     }
 
     .start-hint {
