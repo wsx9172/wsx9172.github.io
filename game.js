@@ -500,6 +500,7 @@ function handleCanvasTap(e) {
 
 // 开始游戏
 function startGame() {
+    // 如果游戏已经在运行，或者有倒计时在进行，直接返回
     if (gameState.isGameRunning || countdownTimer) {
         return;
     }
@@ -521,6 +522,11 @@ function startGame() {
     pauseBtn.disabled = true;
 
     showCountdown(() => {
+        // 双重检查：确保在回调执行时游戏仍然处于未运行状态
+        if (gameState.isGameRunning || !startBtn.disabled) {
+            return;
+        }
+        
         gameState.isGameRunning = true;
         gameState.isPaused = false;
         startBtn.disabled = true;
@@ -552,21 +558,22 @@ function showCountdown(callback) {
     let remainingSeconds = 3;
 
     function countdownTick() {
-        pauseHint.textContent = remainingSeconds;
-        pauseHint.classList.add('visible', 'countdown');
-
-        remainingSeconds -= 1;
-        if (remainingSeconds >= 0) {
+        if (remainingSeconds > 0) {
+            // 显示倒计时数字
+            pauseHint.textContent = remainingSeconds;
+            pauseHint.classList.add('visible', 'countdown');
+            
+            remainingSeconds -= 1;
             countdownTimer = setTimeout(countdownTick, 1000);
-            return;
-        }
+        } else {
+            // 倒计时结束，隐藏提示并执行回调
+            clearCountdownTimer();
+            pauseHint.classList.remove('visible', 'countdown');
+            pauseHint.textContent = '';
 
-        clearCountdownTimer();
-        pauseHint.classList.remove('visible', 'countdown');
-        pauseHint.textContent = '';
-
-        if (callback) {
-            callback();
+            if (callback) {
+                callback();
+            }
         }
     }
 
