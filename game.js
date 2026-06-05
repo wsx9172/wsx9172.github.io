@@ -114,7 +114,8 @@ function init() {
     setupDpadControls();
     generateFood();
     updateHintText();
-    resizeCanvas(); // 自适应画布大小并首次绘制
+    resizeCanvas();
+    draw(); // 确保首次绘制（resizeCanvas 尺寸未变时会跳过 draw）
 }
 
 // 添加事件监听
