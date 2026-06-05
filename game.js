@@ -173,7 +173,6 @@ const hapticManager = {
     enabled: true,
     _supported: typeof navigator.vibrate === 'function',
     _pending: null,
-    _lastVibrateTime: 0,
 
     toggle() {
         this.enabled = !this.enabled;
@@ -186,13 +185,7 @@ const hapticManager = {
     // 必须在用户手势中调用（keydown / touchstart / click）
     _vibrateNow(pattern) {
         if (!this.enabled || !this._supported) return;
-        const now = Date.now();
-        // 避免过于频繁的震动（最小间隔50ms）
-        if (now - this._lastVibrateTime < 50) return;
-        try { 
-            navigator.vibrate(pattern); 
-            this._lastVibrateTime = now;
-        } catch (e) {}
+        try { navigator.vibrate(pattern); } catch (e) {}
     },
 
     // 方向变更 + 冲刷 pending 震动。由用户手势直接调用，可靠触发。
@@ -202,17 +195,11 @@ const hapticManager = {
             const p = this._pending;
             this._pending = null;
             // 先触发 pending 震动，40ms 间隔后触发方向轻震
-            try { 
-                navigator.vibrate(Array.isArray(p) ? p.concat([40, 20]) : [p, 40, 20]); 
-                this._lastVibrateTime = Date.now();
-            } catch (e) {
+            try { navigator.vibrate(Array.isArray(p) ? p.concat([40, 20]) : [p, 40, 20]); } catch (e) {
                 try { navigator.vibrate(20); } catch (e2) {}
             }
         } else {
-            try { 
-                navigator.vibrate(20); 
-                this._lastVibrateTime = Date.now();
-            } catch (e) {}
+            try { navigator.vibrate(20); } catch (e) {}
         }
     },
 
@@ -371,12 +358,6 @@ function handleKeyPress(event) {
     const key = event.key;
     let direction = null;
     
-    // 在任何按键操作前，先检查并触发 pending 震动（用户手势上下文）
-    if (hapticManager._pending !== null) {
-        hapticManager._vibrateNow(hapticManager._pending);
-        hapticManager._pending = null;
-    }
-    
     switch (key) {
         case 'ArrowUp':
             if (gameState.direction.y === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].y === 0)) {
@@ -444,12 +425,6 @@ function applyDirection(direction) {
 function handleTouchStart(e) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-    
-    // 在 touchstart 时也检查 pending 震动（用户手势上下文）
-    if (hapticManager._pending !== null) {
-        hapticManager._vibrateNow(hapticManager._pending);
-        hapticManager._pending = null;
-    }
 }
 
 function handleTouchMove(e) {
