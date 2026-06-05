@@ -219,7 +219,7 @@ body {
 
 .pause-hint {
     position: absolute;
-    top: 38%;
+    top: 62%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 10;
@@ -236,9 +236,8 @@ body {
     animation: pauseBlink 1.4s ease-in-out infinite;
 }
 
-/* 倒计时数字用大字 */
+/* 倒计时数字用大字，位置与暂停/开始提示一致 */
 .pause-hint.countdown {
-    top: 50%;
     color: rgba(255, 50, 50, 0.7);
     font-size: 6rem;
     font-weight: 900;
@@ -534,8 +533,10 @@ body {
         font-size: 1.2em;
         margin-bottom: 0;
         text-align: center;
+        color: #ffffff;
         -webkit-text-fill-color: #ffffff;
         background: none;
+        -webkit-background-clip: border-box;
     }
 
     .stats-panel {
@@ -600,22 +601,23 @@ body {
     .game-area {
         flex: 1;
         flex-direction: column;
-        padding: 8px;
+        padding: 4px;
         border-radius: 10px;
-        gap: 8px;
+        gap: 4px;
         overflow: visible;
     }
 
     .game-stage {
-        flex: 0 1 auto;
+        flex: 1;
         display: flex;
         justify-content: center;
         align-items: center;
+        min-height: 0;
     }
 
     #gameCanvas {
         max-width: 100%;
-        max-height: none;
+        max-height: 100%;
         border-width: 2px;
     }
 

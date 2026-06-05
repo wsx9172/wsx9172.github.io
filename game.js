@@ -334,8 +334,10 @@ function init() {
 function addEventListeners() {
     document.addEventListener('keydown', handleKeyPress);
     window.addEventListener('resize', resizeCanvas);
-    canvas.addEventListener('touchstart', handleTouchStart, false);
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleCanvasTap);
+    canvas.addEventListener('click', handleCanvasTap);
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     resetBtn.addEventListener('click', resetGame);
@@ -431,6 +433,7 @@ function handleTouchStart(e) {
 }
 
 function handleTouchMove(e) {
+    _tapMoved = true;
     e.preventDefault();
     
     const touchEndX = e.touches[0].clientX;
@@ -466,6 +469,26 @@ function handleTouchMove(e) {
             touchStartX = touchEndX;
             touchStartY = touchEndY;
         }
+    }
+}
+
+// 移动端点击画布开始/继续游戏
+let _tapMoved = false;
+function handleCanvasTap(e) {
+    // 只在移动端生效
+    if (window.innerWidth > 768) return;
+
+    // touchmove 触发的滑动不算点击
+    if (e.type === 'touchend') {
+        if (_tapMoved) { _tapMoved = false; return; }
+    }
+    // click 在 touchend 之后也触发，防止重复
+    if (e.type === 'click' && e.pointerType !== 'mouse') return;
+
+    if (!gameState.isGameRunning && !countdownTimer) {
+        startGame();
+    } else if (gameState.isGameRunning && gameState.isPaused) {
+        togglePause();
     }
 }
 
@@ -794,7 +817,7 @@ function resizeCanvas() {
         const maxWidth = window.innerWidth - padding;
         newSize = Math.floor(maxWidth / GRID_SIZE) * GRID_SIZE;
         newSize = Math.max(300, newSize);
-        const maxHeight = window.innerHeight - 400;
+        const maxHeight = window.innerHeight - 360;
         newSize = Math.min(newSize, Math.floor(maxHeight / GRID_SIZE) * GRID_SIZE);
     } else {
         newSize = 600;
