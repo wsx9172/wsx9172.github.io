@@ -903,3 +903,6 @@ function drawFood(x, y) {
     ctx.fillText(fruit.emoji, centerX, centerY + 1);
     ctx.restore();
 }
+
+// 初始化游戏
+init();
