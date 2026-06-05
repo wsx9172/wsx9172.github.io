@@ -3,6 +3,162 @@ const GRID_SIZE = 20;
 let CANVAS_SIZE = 600;
 let CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
 
+// ========== 音效系统 ==========
+const soundManager = {
+    enabled: true,
+    ctx: null,
+    bgNodes: null,
+
+    init() {
+        if (this.ctx) return;
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            this.enabled = false;
+        }
+    },
+
+    resume() {
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+
+    toggle() {
+        this.enabled = !this.enabled;
+        if (this.enabled) {
+            this.init();
+            this.resume();
+        } else {
+            this.stopBackground();
+        }
+        return this.enabled;
+    },
+
+    _tone(freq, startTime, duration, type, vol) {
+        if (!this.enabled || !this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(Math.min(vol, 0.3), startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+    },
+
+    // 吃到水果：短促上扬
+    eatSound() {
+        if (!this.enabled || !this.ctx) return;
+        this.resume();
+        const t = this.ctx.currentTime;
+        this._tone(523, t, 0.08, 'sine', 0.12);
+        this._tone(659, t + 0.05, 0.08, 'sine', 0.12);
+        this._tone(784, t + 0.10, 0.10, 'sine', 0.12);
+    },
+
+    // 升级：上行琶音
+    levelUpSound() {
+        if (!this.enabled || !this.ctx) return;
+        this.resume();
+        const t = this.ctx.currentTime;
+        [523, 659, 784, 1047].forEach((f, i) => {
+            this._tone(f, t + i * 0.08, 0.12, 'triangle', 0.13);
+        });
+    },
+
+    // 通关（10级钻石）：庆祝旋律
+    victorySound() {
+        if (!this.enabled || !this.ctx) return;
+        this.resume();
+        const t = this.ctx.currentTime;
+        [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => {
+            this._tone(f, t + i * 0.10, 0.15, 'triangle', 0.12);
+        });
+    },
+
+    // 失败：下行悲鸣
+    gameOverSound() {
+        if (!this.enabled || !this.ctx) return;
+        this.resume();
+        const t = this.ctx.currentTime;
+        this._tone(392, t, 0.25, 'sawtooth', 0.06);
+        this._tone(330, t + 0.22, 0.25, 'sawtooth', 0.06);
+        this._tone(262, t + 0.44, 0.35, 'sawtooth', 0.06);
+    },
+
+    // 全局背景音：低频环境嗡鸣 + 轻柔节奏
+    startBackground() {
+        if (!this.enabled || !this.ctx || this.bgNodes) return;
+        this.resume();
+        const nodes = {};
+
+        // 低频嗡鸣基底
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filt = this.ctx.createBiquadFilter();
+        osc.type = 'sine';
+        osc.frequency.value = 55;
+        filt.type = 'lowpass';
+        filt.frequency.value = 200;
+        gain.gain.value = 0.025;
+        osc.connect(filt);
+        filt.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+
+        // LFO 缓慢调制频率增加变化
+        const lfo = this.ctx.createOscillator();
+        const lfoGain = this.ctx.createGain();
+        lfo.frequency.value = 0.15;
+        lfoGain.gain.value = 8;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start();
+
+        nodes.osc = osc; nodes.gain = gain; nodes.filt = filt;
+        nodes.lfo = lfo; nodes.lfoGain = lfoGain;
+
+        // 轻柔节拍（每 2 秒一个低音脉冲）
+        this._bgBeatInterval = setInterval(() => {
+            if (!this.enabled || !this.ctx) return;
+            const t = this.ctx.currentTime;
+            this._tone(82, t, 0.15, 'sine', 0.04);
+        }, 2000);
+
+        this.bgNodes = nodes;
+    },
+
+    stopBackground() {
+        if (this._bgBeatInterval) {
+            clearInterval(this._bgBeatInterval);
+            this._bgBeatInterval = null;
+        }
+        if (this.bgNodes) {
+            Object.values(this.bgNodes).forEach(n => {
+                try { n.stop(); } catch (e) { /* already stopped */ }
+                try { n.disconnect(); } catch (e) { /* already disconnected */ }
+            });
+            this.bgNodes = null;
+        }
+    },
+
+    // 游戏进行中的轻击节奏（每步一响）
+    stepTick: 0,
+    stepSound() {
+        if (!this.enabled || !this.ctx) return;
+        this.resume();
+        this.stepTick = (this.stepTick + 1) % 4;
+        // 每 4 步一个轻微低频脉冲
+        if (this.stepTick === 0) {
+            const t = this.ctx.currentTime;
+            this._tone(110, t, 0.06, 'sine', 0.03);
+        }
+    }
+};
+
 // 游戏状态
 const gameState = {
     snake: [
@@ -98,6 +254,7 @@ const finalScoreDisplay = document.getElementById('finalScore');
 const finalHighScoreDisplay = document.getElementById('finalHighScore');
 const pauseHint = document.getElementById('pauseHint');
 const startHint = document.getElementById('startHint');
+const soundToggleBtn = document.getElementById('soundToggleBtn');
 
 let countdownTimer = null;
 
@@ -128,6 +285,14 @@ function addEventListeners() {
     pauseBtn.addEventListener('click', togglePause);
     resetBtn.addEventListener('click', resetGame);
     restartBtn.addEventListener('click', restartGame);
+
+    // 音效开关
+    soundToggleBtn.addEventListener('click', () => {
+        soundManager.init(); // 首次点击初始化 AudioContext
+        const on = soundManager.toggle();
+        soundToggleBtn.textContent = on ? '🔊' : '🔇';
+        soundToggleBtn.classList.toggle('muted', !on);
+    });
 }
 
 // 键盘事件处理 - 带输入缓冲
@@ -257,7 +422,9 @@ function startGame() {
 
         // 隐藏鼠标
         canvas.style.cursor = 'none';
-        
+
+        soundManager.startBackground();
+
         gameLoop();
     });
 }
@@ -339,6 +506,7 @@ function resetGame() {
     gameState.isPaused = false;
     particles.length = 0;  // 清空粒子
     updateDpadCenterIcon();
+    soundManager.stopBackground();
 
     startBtn.textContent = '▶ 开始';
     startBtn.disabled = false;
@@ -434,14 +602,20 @@ function gameLoop() {
         }
         
         gameState.score += gameState.level;
-        
+        soundManager.eatSound();
+
         // 检查是否升级
         const foodEaten = Math.floor(gameState.score / gameState.level);
         const newLevel = Math.floor(foodEaten / 10) + 1;
         if (newLevel > gameState.level) {
             gameState.level = newLevel;
             gameState.gameSpeed = Math.max(50, 120 - (gameState.level - 1) * 10);
-            
+
+            soundManager.levelUpSound();
+            if (gameState.level === 10) {
+                soundManager.victorySound();
+            }
+
             // 触发升级动画
             triggerLevelUpAnimation();
         }
@@ -457,6 +631,7 @@ function gameLoop() {
     draw();
 
     // 递归调用下一次循环
+    soundManager.stepSound();
     setTimeout(gameLoop, gameState.gameSpeed);
 }
 
@@ -721,6 +896,9 @@ function endGame() {
     pauseHint.classList.remove('visible');
     particles.length = 0;  // 清空粒子
     updateDpadCenterIcon();
+
+    soundManager.stopBackground();
+    soundManager.gameOverSound();
 
     // 更新最高分
     if (gameState.score > gameState.highScore) {

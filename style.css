@@ -132,6 +132,17 @@ body {
     transform: none;
 }
 
+.btn-sound {
+    flex: 0 0 auto;
+    width: auto;
+    font-size: 0.9em;
+    padding: 10px 12px;
+}
+
+.btn-sound.muted {
+    opacity: 0.5;
+}
+
 .info-box {
     background: rgba(102, 126, 234, 0.1);
     border: 1px solid rgba(102, 126, 234, 0.2);
@@ -501,6 +512,13 @@ body {
         font-size: 0.75em;
         border-radius: 6px;
         white-space: nowrap;
+    }
+
+    .btn-sound {
+        flex: 0 0 auto;
+        min-width: 32px;
+        padding: 8px 6px;
+        font-size: 0.75em;
     }
 
     .start-hint {
