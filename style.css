@@ -441,8 +441,8 @@ body {
 
 .dpad {
     display: grid;
-    grid-template-columns: 64px 64px 64px;
-    grid-template-rows: 64px 64px 64px;
+    grid-template-columns: 72px 72px 72px;
+    grid-template-rows: 72px 72px 72px;
     gap: 4px;
     grid-template-areas:
         ".    up    ."
@@ -451,8 +451,8 @@ body {
 }
 
 .dpad-btn {
-    width: 64px;
-    height: 64px;
+    width: 72px;
+    height: 72px;
     border: 2px solid rgba(102, 126, 234, 0.5);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.08);
@@ -612,15 +612,15 @@ body {
     }
 
     .icon-play {
-        border-top-width: 8px;
-        border-bottom-width: 8px;
-        border-left-width: 13px;
+        border-top-width: 9px;
+        border-bottom-width: 9px;
+        border-left-width: 15px;
     }
 
     .icon-pause::before,
     .icon-pause::after {
-        width: 4px;
-        height: 15px;
+        width: 5px;
+        height: 17px;
     }
 
     .start-hint {
@@ -634,24 +634,23 @@ body {
 
     /* 游戏区域 */
     .game-area {
-        flex: 1;
+        flex: 0 0 auto;
         flex-direction: column;
-        padding: 4px;
+        padding: 0;
         border-radius: 10px;
-        gap: 4px;
+        gap: 2px;
         overflow: visible;
     }
 
     .game-stage {
-        flex: 1;
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 0;
     }
 
     #gameCanvas {
         border-width: 2px;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
     }
 
     /* 弹窗适配 */
