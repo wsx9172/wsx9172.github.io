@@ -395,9 +395,24 @@ function handleKeyPress(event) {
             event.preventDefault();
             break;
     }
-    
-    // 添加到方向队列（最多保留2个方向）
-    if (direction && gameState.isGameRunning && !gameState.isPaused) {
+
+    if (direction) {
+        applyDirection(direction);
+    }
+}
+
+// 应用方向变更（未开始/暂停时直接生效改眼睛，运行时进队列）
+function applyDirection(direction) {
+    if (!gameState.isGameRunning || gameState.isPaused) {
+        // 未开始或暂停：直接更新蛇头朝向，不允许反向
+        if (direction.x === -gameState.direction.x && direction.y === -gameState.direction.y) return;
+        if (direction.x === 0 && direction.y === 0) return;
+        gameState.direction = direction;
+        gameState.nextDirection = direction;
+        gameState.directionQueue = [];
+        draw();
+    } else {
+        // 运行中：正常入队
         if (gameState.directionQueue.length < 2) {
             gameState.directionQueue.push(direction);
         }
@@ -408,13 +423,11 @@ function handleKeyPress(event) {
 
 // 触屏事件处理
 function handleTouchStart(e) {
-    if (!gameState.isGameRunning || gameState.isPaused) return;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
 }
 
 function handleTouchMove(e) {
-    if (!gameState.isGameRunning || gameState.isPaused) return;
     e.preventDefault();
     
     const touchEndX = e.touches[0].clientX;
@@ -446,11 +459,7 @@ function handleTouchMove(e) {
         }
         
         if (direction) {
-            if (gameState.directionQueue.length < 2) {
-                gameState.directionQueue.push(direction);
-            }
-            gameState.nextDirection = direction;
-            hapticManager.dirFeedback();
+            applyDirection(direction);
             touchStartX = touchEndX;
             touchStartY = touchEndY;
         }
@@ -508,11 +517,11 @@ function clearCountdownTimer() {
 function showCountdown(callback) {
     clearCountdownTimer();
     let remainingSeconds = 3;
-    
+
     function countdownTick() {
         pauseHint.textContent = remainingSeconds;
-        pauseHint.classList.add('visible');
-        
+        pauseHint.classList.add('visible', 'countdown');
+
         remainingSeconds -= 1;
         if (remainingSeconds >= 0) {
             countdownTimer = setTimeout(countdownTick, 1000);
@@ -520,9 +529,9 @@ function showCountdown(callback) {
         }
 
         clearCountdownTimer();
-        pauseHint.classList.remove('visible');
+        pauseHint.classList.remove('visible', 'countdown');
         pauseHint.textContent = '';
-        
+
         if (callback) {
             callback();
         }
@@ -539,7 +548,7 @@ function togglePause() {
         updateDpadCenterIcon();
         
         if (gameState.isPaused) {
-            pauseHint.textContent = '⏸';
+            pauseHint.textContent = '已暂停';
             pauseHint.classList.add('visible');
 
             // 暂停时显示鼠标
@@ -803,7 +812,7 @@ function resizeCanvas() {
 function updateHintText() {
     if (!startHint) return;
     const isMobile = window.innerWidth <= 768;
-    startHint.textContent = isMobile ? '点击中央按钮开始游戏' : '按空格键开始游戏';
+    startHint.textContent = isMobile ? '点击屏幕开始游戏' : '按空格键开始游戏';
 }
 
 // 更新 D-pad 中央按钮图标
@@ -829,20 +838,17 @@ function setupDpadControls() {
 
     function onDpadDirection(direction, e) {
         e.preventDefault();
-        if (!gameState.isGameRunning || gameState.isPaused) return;
 
-        const lastDir = gameState.directionQueue.length > 0
-            ? gameState.directionQueue[gameState.directionQueue.length - 1]
-            : gameState.direction;
-
-        if (direction.x !== 0 && lastDir.x !== 0) return;
-        if (direction.y !== 0 && lastDir.y !== 0) return;
-
-        if (gameState.directionQueue.length < 2) {
-            gameState.directionQueue.push(direction);
+        // 运行时检查方向合法性
+        if (!gameState.isPaused) {
+            const lastDir = gameState.directionQueue.length > 0
+                ? gameState.directionQueue[gameState.directionQueue.length - 1]
+                : gameState.direction;
+            if (direction.x !== 0 && lastDir.x !== 0) return;
+            if (direction.y !== 0 && lastDir.y !== 0) return;
         }
-        gameState.nextDirection = direction;
-        hapticManager.dirFeedback();
+
+        applyDirection(direction);
     }
 
     function onDpadCenter(e) {
@@ -887,7 +893,7 @@ function triggerLevelUpAnimation() {
 let levelUpAnimationState = {
     active: false,
     startTime: 0,
-    duration: 2000, // 2秒
+    duration: 1000, // 1秒
     level: 1
 };
 
@@ -912,18 +918,19 @@ function drawLevelUpAnimation() {
     const centerX = CANVAS_SIZE / 2;
     const centerY = CANVAS_SIZE / 2 - 50;
     
-    // 计算透明度（淡入淡出）
+    // 计算透明度（快速淡入淡出，最大 0.75）
     let opacity;
-    if (progress < 0.2) {
-        opacity = progress / 0.2; // 淡入
-    } else if (progress > 0.8) {
-        opacity = (1 - progress) / 0.2; // 淡出
+    if (progress < 0.12) {
+        opacity = progress / 0.12;
+    } else if (progress > 0.85) {
+        opacity = (1 - progress) / 0.15;
     } else {
         opacity = 1;
     }
-    
+    opacity *= 0.75;
+
     // 计算缩放效果
-    const scale = 1 + Math.sin(progress * Math.PI) * 0.2;
+    const scale = 1 + Math.sin(progress * Math.PI) * 0.15;
     
     ctx.save();
     ctx.globalAlpha = opacity;
@@ -1001,6 +1008,9 @@ function endGame() {
     // 显示游戏结束模态
     finalScoreDisplay.textContent = gameState.score;
     finalHighScoreDisplay.textContent = gameState.highScore;
+    document.getElementById('finalLevel').textContent = gameState.level;
+    const fruit = getFruit(gameState.level);
+    document.getElementById('finalFruit').textContent = fruit.emoji;
     gameOverModal.classList.add('show');
 
     // 重置按钮状态

@@ -36,13 +36,12 @@
                     <button id="vibeToggleBtn" class="btn-icon" title="震动开关">📳</button>
                 </div>
             </div>
-            
-            <p id="startHint" class="start-hint">按空格键开始游戏</p>
         </div>
-        
+
         <div class="game-area">
             <div class="game-stage">
                 <div id="pauseHint" class="pause-hint" aria-live="polite"></div>
+                <div id="startHint" class="start-hint">按空格键开始游戏</div>
                 <canvas id="gameCanvas" width="600" height="600"></canvas>
             </div>
             <div class="dpad-container">
@@ -92,7 +91,12 @@
                         <span>最高分</span>
                         <span id="finalHighScore">0</span>
                     </div>
+                    <div class="result-item">
+                        <span>达到等级</span>
+                        <span id="finalLevel">1</span>
+                    </div>
                 </div>
+                <div id="finalFruit" class="final-fruit"></div>
                 <button id="restartBtn" class="btn-restart">重新开始</button>
             </div>
         </div>
