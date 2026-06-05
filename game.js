@@ -32,12 +32,14 @@ const restartBtn = document.getElementById('restartBtn');
 const gameOverModal = document.getElementById('gameOverModal');
 const finalScoreDisplay = document.getElementById('finalScore');
 const finalHighScoreDisplay = document.getElementById('finalHighScore');
+const pauseHint = document.getElementById('pauseHint');
 
 let countdownTimer = null;
 
 // 初始化
 function init() {
     highScoreDisplay.textContent = gameState.highScore;
+    pauseHint.textContent = '';
     updateDisplay();
     addEventListeners();
     generateFood();
@@ -139,6 +141,7 @@ function togglePause() {
     if (gameState.isGameRunning) {
         gameState.isPaused = !gameState.isPaused;
         pauseBtn.textContent = gameState.isPaused ? '继续' : '暂停';
+        pauseHint.textContent = gameState.isPaused ? '已暂停' : '';
         if (!gameState.isPaused) {
             gameLoop();
         }
@@ -161,6 +164,7 @@ function resetGame() {
     startBtn.disabled = false;
     pauseBtn.textContent = '暂停';
     pauseBtn.disabled = true;
+    pauseHint.textContent = '';
     
     generateFood();
     updateDisplay();
@@ -254,6 +258,7 @@ function endGame() {
     clearCountdownTimer();
     gameState.isGameRunning = false;
     gameState.isPaused = false;
+    pauseHint.textContent = '';
     
     // 更新最高分
     if (gameState.score > gameState.highScore) {
@@ -391,6 +396,33 @@ function drawSnakeHead(x, y, size) {
     ctx.beginPath();
     ctx.arc(eye2X, eye2Y, eyeSize, 0, Math.PI * 2);
     ctx.fill();
+
+    // 增强方向指示效果
+    ctx.save();
+    ctx.fillStyle = 'rgba(120, 255, 120, 0.25)';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'rgba(120, 255, 120, 0.8)';
+    ctx.beginPath();
+    if (gameState.direction.x > 0) {
+        ctx.moveTo(x + size * 0.78, y + size * 0.35);
+        ctx.lineTo(x + size * 1.04, y + size * 0.5);
+        ctx.lineTo(x + size * 0.78, y + size * 0.65);
+    } else if (gameState.direction.x < 0) {
+        ctx.moveTo(x + size * 0.22, y + size * 0.35);
+        ctx.lineTo(x - size * 0.04, y + size * 0.5);
+        ctx.lineTo(x + size * 0.22, y + size * 0.65);
+    } else if (gameState.direction.y < 0) {
+        ctx.moveTo(x + size * 0.35, y + size * 0.22);
+        ctx.lineTo(x + size * 0.5, y - size * 0.04);
+        ctx.lineTo(x + size * 0.65, y + size * 0.22);
+    } else {
+        ctx.moveTo(x + size * 0.35, y + size * 0.78);
+        ctx.lineTo(x + size * 0.5, y + size * 1.04);
+        ctx.lineTo(x + size * 0.65, y + size * 0.78);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
 
     // 绘制瞳孔
     ctx.fillStyle = '#000000';

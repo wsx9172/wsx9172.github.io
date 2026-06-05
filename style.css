@@ -175,6 +175,29 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.game-stage {
+    position: relative;
+    display: inline-block;
+}
+
+.pause-hint {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(10, 10, 10, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #e8f4ff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+
 #gameCanvas {
     border: 3px solid rgba(102, 126, 234, 0.5);
     background: #0a0a0a;
