@@ -167,8 +167,7 @@ const soundManager = {
 };
 
 // ========== 震动反馈系统 ==========
-// Chrome 要求 navigator.vibrate() 必须在用户手势同步回调中调用，setTimeout 中调用会被拦截。
-// 策略：游戏事件（吃水果/升级/失败）只设置 pending，由下一次方向输入（用户手势）触发。
+// Chrome 要求：HTTPS（或 localhost）+ 用户手势同步调用 + 前台标签页
 const hapticManager = {
     enabled: true,
     _supported: typeof navigator.vibrate === 'function',
@@ -177,9 +176,14 @@ const hapticManager = {
     toggle() {
         this.enabled = !this.enabled;
         if (!this.enabled) {
-            try { navigator.vibrate(0); } catch (e) {} // 停止正在进行的震动
+            try { navigator.vibrate(0); } catch (e) {}
+            return false;
         }
-        return this.enabled;
+        // 打开时立即测试震动（用户手势中调用，可靠触发）
+        if (this._supported) {
+            try { navigator.vibrate(40); } catch (e) {}
+        }
+        return true;
     },
 
     // 必须在用户手势中调用（keydown / touchstart / click）
@@ -188,26 +192,25 @@ const hapticManager = {
         try { navigator.vibrate(pattern); } catch (e) {}
     },
 
-    // 方向变更 + 冲刷 pending 震动。由用户手势直接调用，可靠触发。
+    // 方向变更 + 冲刷 pending。由用户手势直接调用，可靠触发。
     dirFeedback() {
         if (!this.enabled || !this._supported) return;
         if (this._pending !== null) {
             const p = this._pending;
             this._pending = null;
-            // 先触发 pending 震动，40ms 间隔后触发方向轻震
-            try { navigator.vibrate(Array.isArray(p) ? p.concat([40, 20]) : [p, 40, 20]); } catch (e) {
-                try { navigator.vibrate(20); } catch (e2) {}
+            try { navigator.vibrate(Array.isArray(p) ? p.concat([50, 40]) : [p, 50, 40]); } catch (e) {
+                try { navigator.vibrate(40); } catch (e2) {}
             }
         } else {
-            try { navigator.vibrate(20); } catch (e) {}
+            try { navigator.vibrate(40); } catch (e) {}
         }
     },
 
-    // 以下方法在 setTimeout(gameLoop) 中调用，只存 pending，不直接震动
-    eatFeedback()       { this._pending = 30; },
-    levelUpFeedback()   { this._pending = [35, 45, 35]; },
-    victoryFeedback()   { this._pending = [40, 50, 40, 50, 40, 50, 120]; },
-    gameOverFeedback()  { this._pending = 200; }
+    // 以下方法在 setTimeout(gameLoop) 中调用，只存 pending，在下一次方向输入时冲刷
+    eatFeedback()       { this._pending = 40; },
+    levelUpFeedback()   { this._pending = [40, 50, 40]; },
+    victoryFeedback()   { this._pending = [50, 60, 50, 60, 50, 60, 150]; },
+    gameOverFeedback()  { this._pending = 250; }
 };
 
 // 游戏状态
