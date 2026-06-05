@@ -225,6 +225,9 @@ body {
     width: auto;
     height: auto;
     box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .modal {

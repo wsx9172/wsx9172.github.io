@@ -11,6 +11,7 @@ const gameState = {
     food: { x: 15, y: 15 },
     direction: { x: 1, y: 0 },
     nextDirection: { x: 1, y: 0 },
+    directionQueue: [],  // 键盘输入缓冲
     score: 0,
     highScore: localStorage.getItem('snakeHighScore') || 0,
     level: 1,
@@ -18,6 +19,35 @@ const gameState = {
     isPaused: false,
     gameSpeed: 100
 };
+
+// 粒子系统
+const particles = [];
+
+class Particle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = (Math.random() - 0.5) * 8;
+        this.life = 1;
+        this.decay = 0.02;
+        this.size = Math.random() * 4 + 2;
+    }
+    
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.2; // 重力效果
+        this.life -= this.decay;
+    }
+    
+    draw(ctx) {
+        ctx.fillStyle = `rgba(255, 150, 100, ${this.life * 0.8})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
 
 // 获取 DOM 元素
 const canvas = document.getElementById('gameCanvas');
@@ -36,6 +66,10 @@ const pauseHint = document.getElementById('pauseHint');
 
 let countdownTimer = null;
 
+// 触屏状态
+let touchStartX = 0;
+let touchStartY = 0;
+
 // 初始化
 function init() {
     highScoreDisplay.textContent = gameState.highScore;
@@ -49,38 +83,41 @@ function init() {
 // 添加事件监听
 function addEventListeners() {
     document.addEventListener('keydown', handleKeyPress);
+    canvas.addEventListener('touchstart', handleTouchStart, false);
+    canvas.addEventListener('touchmove', handleTouchMove, false);
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     resetBtn.addEventListener('click', resetGame);
     restartBtn.addEventListener('click', restartGame);
 }
 
-// 键盘事件处理
+// 键盘事件处理 - 带输入缓冲
 function handleKeyPress(event) {
     const key = event.key;
+    let direction = null;
     
     switch (key) {
         case 'ArrowUp':
-            if (gameState.direction.y === 0) {
-                gameState.nextDirection = { x: 0, y: -1 };
+            if (gameState.direction.y === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].y === 0)) {
+                direction = { x: 0, y: -1 };
             }
             event.preventDefault();
             break;
         case 'ArrowDown':
-            if (gameState.direction.y === 0) {
-                gameState.nextDirection = { x: 0, y: 1 };
+            if (gameState.direction.y === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].y === 0)) {
+                direction = { x: 0, y: 1 };
             }
             event.preventDefault();
             break;
         case 'ArrowLeft':
-            if (gameState.direction.x === 0) {
-                gameState.nextDirection = { x: -1, y: 0 };
+            if (gameState.direction.x === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].x === 0)) {
+                direction = { x: -1, y: 0 };
             }
             event.preventDefault();
             break;
         case 'ArrowRight':
-            if (gameState.direction.x === 0) {
-                gameState.nextDirection = { x: 1, y: 0 };
+            if (gameState.direction.x === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].x === 0)) {
+                direction = { x: 1, y: 0 };
             }
             event.preventDefault();
             break;
@@ -92,6 +129,64 @@ function handleKeyPress(event) {
             }
             event.preventDefault();
             break;
+    }
+    
+    // 添加到方向队列（最多保留2个方向）
+    if (direction && gameState.isGameRunning && !gameState.isPaused) {
+        if (gameState.directionQueue.length < 2) {
+            gameState.directionQueue.push(direction);
+        }
+        gameState.nextDirection = direction;
+    }
+}
+
+// 触屏事件处理
+function handleTouchStart(e) {
+    if (!gameState.isGameRunning || gameState.isPaused) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}
+
+function handleTouchMove(e) {
+    if (!gameState.isGameRunning || gameState.isPaused) return;
+    e.preventDefault();
+    
+    const touchEndX = e.touches[0].clientX;
+    const touchEndY = e.touches[0].clientY;
+    
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+    
+    // 只有滑动距离足够时才响应
+    const minSwipeDistance = 30;
+    
+    if (Math.abs(deltaX) > minSwipeDistance || Math.abs(deltaY) > minSwipeDistance) {
+        let direction = null;
+        
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            // 水平滑动
+            if (deltaX > 0 && gameState.direction.x === 0) {
+                direction = { x: 1, y: 0 };
+            } else if (deltaX < 0 && gameState.direction.x === 0) {
+                direction = { x: -1, y: 0 };
+            }
+        } else {
+            // 垂直滑动
+            if (deltaY > 0 && gameState.direction.y === 0) {
+                direction = { x: 0, y: 1 };
+            } else if (deltaY < 0 && gameState.direction.y === 0) {
+                direction = { x: 0, y: -1 };
+            }
+        }
+        
+        if (direction) {
+            if (gameState.directionQueue.length < 2) {
+                gameState.directionQueue.push(direction);
+            }
+            gameState.nextDirection = direction;
+            touchStartX = touchEndX;
+            touchStartY = touchEndY;
+        }
     }
 }
 
@@ -175,11 +270,13 @@ function resetGame() {
     gameState.snake = [{ x: 10, y: 10 }];
     gameState.direction = { x: 1, y: 0 };
     gameState.nextDirection = { x: 1, y: 0 };
+    gameState.directionQueue = [];
     gameState.score = 0;
     gameState.level = 1;
     gameState.gameSpeed = 100;
     gameState.isGameRunning = false;
     gameState.isPaused = false;
+    particles.length = 0;  // 清空粒子
     
     startBtn.textContent = '▶ 开始';
     startBtn.disabled = false;
@@ -207,6 +304,11 @@ function gameLoop() {
         return;
     }
 
+    // 从队列中获取下一个方向
+    if (gameState.directionQueue.length > 0) {
+        gameState.nextDirection = gameState.directionQueue.shift();
+    }
+    
     // 更新蛇的方向
     gameState.direction = gameState.nextDirection;
 
@@ -236,6 +338,13 @@ function gameLoop() {
 
     // 检查是否吃到食物
     if (newHead.x === gameState.food.x && newHead.y === gameState.food.y) {
+        // 生成粒子效果
+        const foodScreenX = gameState.food.x * CELL_SIZE + CELL_SIZE / 2;
+        const foodScreenY = gameState.food.y * CELL_SIZE + CELL_SIZE / 2;
+        for (let i = 0; i < 8; i++) {
+            particles.push(new Particle(foodScreenX, foodScreenY));
+        }
+        
         gameState.score += gameState.level;
         
         // 检查是否升级
@@ -282,6 +391,7 @@ function endGame() {
     gameState.isPaused = false;
     pauseHint.textContent = '';
     pauseHint.classList.remove('visible');
+    particles.length = 0;  // 清空粒子
     
     // 更新最高分
     if (gameState.score > gameState.highScore) {
@@ -347,6 +457,16 @@ function draw() {
 
     // 绘制食物
     drawFood(gameState.food.x * CELL_SIZE, gameState.food.y * CELL_SIZE);
+    
+    // 绘制粒子并更新它们的生命周期
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw(ctx);
+        
+        if (particles[i].life <= 0) {
+            particles.splice(i, 1);
+        }
+    }
 }
 
 // 绘制蛇头
