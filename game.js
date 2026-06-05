@@ -472,39 +472,23 @@ function drawFood(x, y) {
     const size = CELL_SIZE - 2;
     const centerX = x + size / 2;
     const centerY = y + size / 2;
-    
-    // 绘制外层光晕
+
+    // 画苹果外圈光晕
     const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size);
-    glowGradient.addColorStop(0, 'rgba(255, 100, 100, 0.6)');
+    glowGradient.addColorStop(0, 'rgba(255, 100, 100, 0.35)');
     glowGradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
     ctx.fillStyle = glowGradient;
     ctx.beginPath();
     ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
     ctx.fill();
 
-    // 绘制食物主体 - 圆形
-    const foodGradient = ctx.createRadialGradient(centerX - size / 6, centerY - size / 6, 0, centerX, centerY, size / 2);
-    foodGradient.addColorStop(0, 'rgba(255, 150, 100, 1)');
-    foodGradient.addColorStop(0.5, 'rgba(255, 80, 80, 1)');
-    foodGradient.addColorStop(1, 'rgba(200, 40, 40, 1)');
-    
-    ctx.fillStyle = foodGradient;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, size / 2 - 1, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 绘制高光
-    ctx.fillStyle = 'rgba(255, 200, 150, 0.6)';
-    ctx.beginPath();
-    ctx.arc(centerX - size / 6, centerY - size / 6, size / 6, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 绘制边框
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, size / 2 - 1, 0, Math.PI * 2);
-    ctx.stroke();
+    // 用苹果 emoji 作为食物图形
+    ctx.save();
+    ctx.font = `${Math.max(16, size * 0.9)}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🍎', centerX, centerY + 1);
+    ctx.restore();
 }
 
 // 初始化游戏
