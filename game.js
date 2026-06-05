@@ -81,7 +81,9 @@ function handleKeyPress(event) {
             event.preventDefault();
             break;
         case ' ':
-            if (gameState.isGameRunning) {
+            if (gameOverModal.classList.contains('show')) {
+                restartGame();
+            } else if (gameState.isGameRunning) {
                 togglePause();
             }
             event.preventDefault();
