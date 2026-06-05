@@ -265,12 +265,12 @@ class LevelUpParticle {
         this.x = x;
         this.y = y;
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 6 + 3;
+        const speed = Math.random() * 4 + 1.5;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.life = 1;
-        this.decay = 0.015;
-        this.size = Math.random() * 6 + 3;
+        this.decay = 0.04;
+        this.size = Math.random() * 4 + 2;
         this.color = color;
     }
     
@@ -820,7 +820,7 @@ function resizeCanvas() {
         const maxWidth = window.innerWidth - padding;
         let displaySize = Math.floor(maxWidth / GRID_SIZE) * GRID_SIZE;
         displaySize = Math.max(300, displaySize);
-        const maxHeight = window.innerHeight - 360;
+        const maxHeight = window.innerHeight - 430;
         displaySize = Math.min(displaySize, Math.floor(maxHeight / GRID_SIZE) * GRID_SIZE);
         canvas.style.width = displaySize + 'px';
         canvas.style.height = displaySize + 'px';
