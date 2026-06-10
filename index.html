@@ -28,17 +28,16 @@
             </div>
             
             <div class="controls-panel">
-                <button id="startBtn" class="btn-control">▶ 开始</button>
-                <button id="pauseBtn" class="btn-control">⏸ 暂停</button>
+                <button id="startBtn" class="btn-control btn-start">▶  开始游戏</button>
+                <button id="pauseBtn" class="btn-control btn-pause" disabled>⏸  暂停</button>
+                <div class="section-label">难度选择</div>
                 <div class="difficulty-row">
                     <button id="diffEasy" class="btn-difficulty">简单</button>
                     <button id="diffNormal" class="btn-difficulty active">普通</button>
                     <button id="diffHard" class="btn-difficulty">困难</button>
                 </div>
-                <div class="toggles-row">
-                    <button id="soundToggleBtn" class="btn-icon" title="音效开关">🔊</button>
-                </div>
             </div>
+            <button id="soundToggleBtn" class="btn-sound" title="音效开关">🔊</button>
         </div>
 
         <div class="game-area">
@@ -73,11 +72,12 @@
             <div class="instructions-box">
                 <p><strong>键盘快捷</strong></p>
                 <ul>
-                    <li>↑ 向上</li>
-                    <li>↓ 向下</li>
-                    <li>← 向左</li>
-                    <li>→ 向右</li>
+                    <li>↑  向上</li>
+                    <li>↓  向下</li>
+                    <li>←  向左</li>
+                    <li>→  向右</li>
                     <li>空格 暂停</li>
+                    <li>长按 加速</li>
                 </ul>
             </div>
         </div>

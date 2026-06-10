@@ -81,6 +81,7 @@ button,
 }
 
 .left-sidebar {
+    position: relative;
     flex: 0 0 180px;
     overflow-y: visible;
     gap: 14px;
@@ -125,84 +126,125 @@ button,
 .controls-panel {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
+/* ===== 主按钮（开始 / 暂停）===== */
 .btn-control {
-    padding: 10px 15px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    width: 100%;
+    padding: 14px 20px;
+    color: #fff;
     border: none;
-    border-radius: 8px;
-    font-weight: bold;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1em;
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.95em;
+    transition: all 0.25s ease;
+    letter-spacing: 1px;
 }
 
-.btn-control:hover {
+.btn-start {
+    background: linear-gradient(135deg, #667eea 0%, #9b59b6 100%);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.35);
+}
+
+.btn-start:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 22px rgba(102, 126, 234, 0.5);
 }
 
-.btn-control:active {
+.btn-start:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-pause {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-pause:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.14);
+    transform: translateY(-1px);
+}
+
+.btn-pause:active:not(:disabled) {
     transform: translateY(0);
 }
 
 .btn-control:disabled {
-    opacity: 0.5;
+    opacity: 0.35;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
+}
+
+/* ===== 难度：胶囊分段控件 ===== */
+.section-label {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 6px;
+    margin-bottom: 2px;
 }
 
 .difficulty-row {
     display: flex;
     flex-direction: row;
-    gap: 4px;
+    gap: 0;
 }
 
 .btn-difficulty {
     flex: 1;
-    padding: 6px 4px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.55);
+    padding: 8px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.8em;
-    cursor: pointer;
-    transition: all 0.25s ease;
     font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-difficulty:first-child {
+    border-radius: 8px 0 0 8px;
+}
+
+.btn-difficulty:last-child {
+    border-radius: 0 8px 8px 0;
+}
+
+.btn-difficulty + .btn-difficulty {
+    border-left: none;
 }
 
 .btn-difficulty:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .btn-difficulty.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: #fff;
     border-color: transparent;
-    font-weight: bold;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    font-weight: 700;
+    box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
+    z-index: 1;
 }
 
-.toggles-row {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-    justify-content: center;
-}
-
-.btn-icon {
-    width: 36px;
-    height: 36px;
+/* ===== 音效按钮：角落图标 ===== */
+.btn-sound {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 30px;
+    height: 30px;
     padding: 0;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    color: #fff;
-    font-size: 0.95em;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 1.1em;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -211,14 +253,13 @@ button,
     line-height: 1;
 }
 
-.btn-icon:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.25);
+.btn-sound:hover {
+    color: #fff;
+    transform: scale(1.15);
 }
 
-.btn-icon.muted {
-    opacity: 0.35;
-    background: rgba(255, 255, 255, 0.03);
+.btn-sound.muted {
+    opacity: 0.25;
 }
 
 .info-box {
@@ -261,10 +302,8 @@ button,
     display: flex;
     justify-content: center;
     align-items: center;
-    background: rgba(0, 0, 0, 0.3);
+    background: #0a0a0a;
     border-radius: 15px;
-    padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .game-stage {
@@ -317,11 +356,8 @@ button,
 }
 
 #gameCanvas {
-    border: 3px solid rgba(102, 126, 234, 0.5);
     background: #0a0a0a;
-    border-radius: 10px;
     display: block;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
@@ -644,35 +680,49 @@ button,
 
     .controls-panel {
         flex-direction: row;
-        gap: 4px;
+        flex-wrap: wrap;
+        gap: 5px;
     }
 
     .btn-control {
-        flex: 1;
+        flex: 1 1 calc(50% - 3px);
         min-width: 0;
-        padding: 8px 4px;
-        font-size: 0.75em;
-        border-radius: 6px;
+        padding: 10px 6px;
+        font-size: 0.8em;
+        border-radius: 10px;
         white-space: nowrap;
+        letter-spacing: 0;
     }
 
-    .toggles-row {
-        gap: 4px;
+    .section-label {
+        width: 100%;
+        margin-top: 2px;
+        font-size: 0.65em;
     }
 
     .difficulty-row {
-        gap: 3px;
-    }
-
-    .btn-icon {
-        width: 30px;
-        height: 30px;
-        font-size: 0.8em;
+        width: 100%;
     }
 
     .btn-difficulty {
-        font-size: 0.7em;
-        padding: 5px 3px;
+        font-size: 0.72em;
+        padding: 7px 0;
+    }
+
+    .btn-difficulty:first-child {
+        border-radius: 6px 0 0 6px;
+    }
+
+    .btn-difficulty:last-child {
+        border-radius: 0 6px 6px 0;
+    }
+
+    .btn-sound {
+        top: 8px;
+        right: 10px;
+        width: 26px;
+        height: 26px;
+        font-size: 1em;
     }
 
     .icon-play {
@@ -701,7 +751,6 @@ button,
         flex: 0 0 auto;
         flex-direction: column;
         padding: 0;
-        border-radius: 10px;
         gap: 2px;
         overflow: visible;
     }
