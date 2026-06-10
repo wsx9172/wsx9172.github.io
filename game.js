@@ -596,7 +596,7 @@ function togglePause() {
             pauseHint.classList.add('visible');
 
             // 暂停时显示鼠标
-            canvas.style.cursor = 'default';
+            canvas.style.cursor = '';
 
             // 暂停背景音乐
             soundManager.stopBackground();
@@ -676,7 +676,7 @@ function resetGame() {
     }
 
     // 重置时显示鼠标
-    canvas.style.cursor = 'default';
+    canvas.style.cursor = '';
 
     generateFood();
     updateDisplay();
@@ -1124,7 +1124,7 @@ function endGame() {
     }
     
     // 游戏结束时显示鼠标
-    canvas.style.cursor = 'default';
+    canvas.style.cursor = '';
 }
 
 // 更新显示

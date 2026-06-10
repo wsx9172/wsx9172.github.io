@@ -10,12 +10,35 @@ html, body {
     overflow: hidden;
 }
 
+/* ========== 自定义光标 ========== */
+/* 将 SVG 编码为 data URI，避免外部文件依赖 */
+:root {
+    --cursor-default: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23667eea'/><stop offset='100%25' stop-color='%23764ba2'/></linearGradient></defs><polygon points='2,2 18,10 12,12 10,18' fill='url(%23g)' stroke='rgba(255,255,255,0.5)' stroke-width='0.8' stroke-linejoin='round'/></svg>") 2 2, auto;
+    --cursor-pointer: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23ffd700'/><stop offset='100%25' stop-color='%23ff8c00'/></linearGradient></defs><polygon points='3,3 21,12 15,15 12,21' fill='url(%23g)' stroke='rgba(255,255,255,0.6)' stroke-width='1' stroke-linejoin='round'/><circle cx='3' cy='3' r='2.5' fill='white' opacity='0.9'/></svg>") 3 3, pointer;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     display: flex;
     justify-content: center;
     align-items: center;
+    cursor: var(--cursor-default);
+}
+
+/* 可交互元素使用金色指针 */
+button,
+.btn-control,
+.btn-restart,
+.btn-difficulty,
+.btn-icon,
+.dpad-btn {
+    cursor: var(--cursor-pointer);
+}
+
+/* Canvas 由 JS 动态控制 cursor，此处设默认值 */
+#gameCanvas {
+    cursor: var(--cursor-default);
 }
 
 .main-container {
