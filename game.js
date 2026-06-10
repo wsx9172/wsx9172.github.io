@@ -394,7 +394,8 @@ function handleKeyPress(event) {
             } else if (!gameState.isGameRunning && !countdownTimer) {
                 // 游戏未开始且没有倒计时时，按空格开始游戏
                 startGame();
-            } else if (gameState.isGameRunning) {
+            } else if (gameState.isGameRunning && !countdownTimer) {
+                // 游戏运行中且没有倒计时时，可以暂停/继续
                 togglePause();
             }
             event.preventDefault();
@@ -423,7 +424,22 @@ function applyDirection(direction) {
         gameState.directionQueue = [];
         draw();
     } else {
-        // 运行中：正常入队
+        // 运行中：检查反向和朝向身体的保护
+        const lastDir = gameState.directionQueue.length > 0
+            ? gameState.directionQueue[gameState.directionQueue.length - 1]
+            : gameState.direction;
+        
+        // 不允许反向
+        if (direction.x === -lastDir.x && direction.y === -lastDir.y) return;
+        if (direction.x === 0 && direction.y === 0) return;
+        
+        // 检查是否会撞到自己（基于最后一个待处理方向计算下一个位置）
+        const head = gameState.snake[0];
+        const nextX = head.x + direction.x;
+        const nextY = head.y + direction.y;
+        if (gameState.snake.some(seg => seg.x === nextX && seg.y === nextY)) return;
+        
+        // 通过所有检查后，加入队列
         if (gameState.directionQueue.length < 2) {
             gameState.directionQueue.push(direction);
         }
@@ -454,18 +470,23 @@ function handleTouchMove(e) {
     if (Math.abs(deltaX) > minSwipeDistance || Math.abs(deltaY) > minSwipeDistance) {
         let direction = null;
         
+        // 获取最后一个待处理的方向（考虑输入缓冲队列）
+        const lastDir = gameState.directionQueue.length > 0
+            ? gameState.directionQueue[gameState.directionQueue.length - 1]
+            : gameState.direction;
+        
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
             // 水平滑动
-            if (deltaX > 0 && gameState.direction.x === 0) {
+            if (deltaX > 0 && lastDir.x === 0) {
                 direction = { x: 1, y: 0 };
-            } else if (deltaX < 0 && gameState.direction.x === 0) {
+            } else if (deltaX < 0 && lastDir.x === 0) {
                 direction = { x: -1, y: 0 };
             }
         } else {
             // 垂直滑动
-            if (deltaY > 0 && gameState.direction.y === 0) {
+            if (deltaY > 0 && lastDir.y === 0) {
                 direction = { x: 0, y: 1 };
-            } else if (deltaY < 0 && gameState.direction.y === 0) {
+            } else if (deltaY < 0 && lastDir.y === 0) {
                 direction = { x: 0, y: -1 };
             }
         }
@@ -582,7 +603,7 @@ function showCountdown(callback) {
 
 // 暂停/继续
 function togglePause() {
-    if (gameState.isGameRunning) {
+    if (gameState.isGameRunning && !countdownTimer) {
         gameState.isPaused = !gameState.isPaused;
         pauseBtn.textContent = gameState.isPaused ? '▶ 继续' : '⏸ 暂停';
         updateDpadCenterIcon();
@@ -600,6 +621,12 @@ function togglePause() {
             // 从暂停恢复时显示倒计时
             pauseBtn.disabled = true;
             showCountdown(() => {
+                // 双重检查：确保游戏仍然处于暂停恢复状态
+                if (!gameState.isGameRunning || gameState.isPaused) {
+                    pauseBtn.disabled = false;
+                    return;
+                }
+                
                 pauseBtn.disabled = false;
 
                 // 恢复游戏后隐藏鼠标
@@ -733,9 +760,9 @@ function gameLoop() {
         soundManager.eatSound();
         hapticManager.eatFeedback();
 
-        // 检查是否升级
-        const foodEaten = Math.floor(gameState.score / gameState.level);
-        const newLevel = Math.floor(foodEaten / 10) + 1;
+        // 检查是否升级（每吃10个食物升一级）
+        const totalFoodEaten = gameState.snake.length - 1; // 蛇的长度-1就是吃的食物总数
+        const newLevel = Math.floor(totalFoodEaten / 10) + 1;
         if (newLevel > gameState.level) {
             gameState.level = newLevel;
             gameState.gameSpeed = Math.max(50, 120 - (gameState.level - 1) * 10);
