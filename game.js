@@ -110,7 +110,8 @@ const soundManager = {
     // ===== 全局背景音乐：五声音阶旋律循环 =====
     _bgTimer: null,
     _bgNoteIndex: 0,
-    _bgTempo: 220, // ms/音符，随等级加快
+    _bgTempo: 220,        // ms/音符，随等级加快
+    _boostMultiplier: 1,  // 加速倍率，长按时为 3
 
     // 五声音阶旋律序列（C5→A5 范围，上行下行交替）
     _bgMelody: [
@@ -148,7 +149,7 @@ const soundManager = {
         }
 
         this._bgNoteIndex = (this._bgNoteIndex + 1) % this._bgMelody.length;
-        this._bgTimer = setTimeout(() => this._bgPlayTick(), this._bgTempo);
+        this._bgTimer = setTimeout(() => this._bgPlayTick(), this._bgTempo / this._boostMultiplier);
     },
 
     // 随等级加快 BGM 节奏
@@ -180,8 +181,15 @@ const gameState = {
     isGameRunning: false,
     isPaused: false,
     difficulty: 'normal',
-    gameSpeed: DIFFICULTY.normal.initialSpeed
+    gameSpeed: DIFFICULTY.normal.initialSpeed,
+    speedBoosted: false
 };
+
+// 统一设置加速状态（同步 BGM 节奏）
+function setSpeedBoost(on) {
+    gameState.speedBoosted = on;
+    soundManager._boostMultiplier = on ? 3 : 1;
+}
 
 // 粒子系统
 const particles = [];
@@ -287,6 +295,7 @@ function init() {
 // 添加事件监听
 function addEventListeners() {
     document.addEventListener('keydown', handleKeyPress);
+    document.addEventListener('keyup', handleKeyUp);
     window.addEventListener('resize', resizeCanvas);
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -369,6 +378,18 @@ function handleKeyPress(event) {
 
     if (direction) {
         applyDirection(direction);
+    }
+
+    // 方向键长按加速（键盘 repeat 事件）
+    if (event.repeat && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+        setSpeedBoost(true);
+    }
+}
+
+// 键盘松开：取消加速
+function handleKeyUp(event) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        setSpeedBoost(false);
     }
 }
 
@@ -636,6 +657,7 @@ function resetGame() {
     gameState.gameSpeed = DIFFICULTY[gameState.difficulty].initialSpeed;
     gameState.isGameRunning = false;
     gameState.isPaused = false;
+    setSpeedBoost(false);
     particles.length = 0;  // 清空粒子
     updateDpadCenterIcon();
     soundManager.stopBackground();
@@ -764,8 +786,11 @@ function gameLoop() {
     // 绘制游戏
     draw();
 
-    // 递归调用下一次循环
-    setTimeout(gameLoop, gameState.gameSpeed);
+    // 递归调用下一次循环（长按加速时速度提升 3 倍）
+    const effectiveSpeed = gameState.speedBoosted
+        ? Math.max(30, Math.floor(gameState.gameSpeed / 3))
+        : gameState.gameSpeed;
+    setTimeout(gameLoop, effectiveSpeed);
 }
 
 // 生成食物
@@ -866,21 +891,41 @@ function updateDpadCenterIcon() {
     }
 }
 
-// 移动端虚拟方向键
+// 移动端虚拟方向键（含长按加速）
 function setupDpadControls() {
-    const dpadUp = document.getElementById('dpadUp');
-    const dpadDown = document.getElementById('dpadDown');
-    const dpadLeft = document.getElementById('dpadLeft');
-    const dpadRight = document.getElementById('dpadRight');
-    const dpadCenter = document.getElementById('dpadCenter');
+    const buttons = {
+        up:    document.getElementById('dpadUp'),
+        down:  document.getElementById('dpadDown'),
+        left:  document.getElementById('dpadLeft'),
+        right: document.getElementById('dpadRight'),
+        center: document.getElementById('dpadCenter')
+    };
 
-    if (!dpadUp) return; // 无 D-pad（桌面端不渲染）则跳过
+    if (!buttons.up) return; // 无 D-pad（桌面端不渲染）则跳过
 
-    function onDpadDirection(direction, e) {
+    const dirMap = {
+        up:    { x: 0, y: -1 },
+        down:  { x: 0, y: 1 },
+        left:  { x: -1, y: 0 },
+        right: { x: 1, y: 0 }
+    };
+
+    let longPressTimer = null;
+    const LONG_PRESS_MS = 200;
+
+    function clearLongPress() {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+        setSpeedBoost(false);
+    }
+
+    function onDirectionDown(direction, e) {
         e.preventDefault();
 
-        // 运行时检查方向合法性
-        if (!gameState.isPaused) {
+        // 检查方向合法性
+        if (gameState.isGameRunning && !gameState.isPaused) {
             const lastDir = gameState.directionQueue.length > 0
                 ? gameState.directionQueue[gameState.directionQueue.length - 1]
                 : gameState.direction;
@@ -889,6 +934,14 @@ function setupDpadControls() {
         }
 
         applyDirection(direction);
+
+        // 启动长按计时器（游戏运行中且未暂停时生效）
+        if (gameState.isGameRunning && !gameState.isPaused) {
+            clearLongPress();
+            longPressTimer = setTimeout(() => {
+                setSpeedBoost(true);
+            }, LONG_PRESS_MS);
+        }
     }
 
     function onDpadCenter(e) {
@@ -900,16 +953,21 @@ function setupDpadControls() {
         }
     }
 
-    dpadUp.addEventListener('touchstart', (e) => onDpadDirection({ x: 0, y: -1 }, e), { passive: false });
-    dpadUp.addEventListener('mousedown', (e) => onDpadDirection({ x: 0, y: -1 }, e));
-    dpadDown.addEventListener('touchstart', (e) => onDpadDirection({ x: 0, y: 1 }, e), { passive: false });
-    dpadDown.addEventListener('mousedown', (e) => onDpadDirection({ x: 0, y: 1 }, e));
-    dpadLeft.addEventListener('touchstart', (e) => onDpadDirection({ x: -1, y: 0 }, e), { passive: false });
-    dpadLeft.addEventListener('mousedown', (e) => onDpadDirection({ x: -1, y: 0 }, e));
-    dpadRight.addEventListener('touchstart', (e) => onDpadDirection({ x: 1, y: 0 }, e), { passive: false });
-    dpadRight.addEventListener('mousedown', (e) => onDpadDirection({ x: 1, y: 0 }, e));
-    dpadCenter.addEventListener('touchstart', (e) => onDpadCenter(e), { passive: false });
-    dpadCenter.addEventListener('mousedown', (e) => onDpadCenter(e));
+    // 方向按钮：按下启动计时 / 松开取消
+    ['up', 'down', 'left', 'right'].forEach(name => {
+        const btn = buttons[name];
+        const dir = dirMap[name];
+        btn.addEventListener('touchstart', (e) => onDirectionDown(dir, e), { passive: false });
+        btn.addEventListener('mousedown', (e) => onDirectionDown(dir, e));
+        btn.addEventListener('touchend', clearLongPress);
+        btn.addEventListener('mouseup', clearLongPress);
+        btn.addEventListener('mouseleave', clearLongPress);
+        btn.addEventListener('touchcancel', clearLongPress);
+    });
+
+    // 中心按钮
+    buttons.center.addEventListener('touchstart', (e) => onDpadCenter(e), { passive: false });
+    buttons.center.addEventListener('mousedown', (e) => onDpadCenter(e));
 }
 
 // 触发升级动画
@@ -1029,6 +1087,7 @@ function endGame() {
     clearCountdownTimer();
     gameState.isGameRunning = false;
     gameState.isPaused = false;
+    setSpeedBoost(false);
     pauseHint.textContent = '';
     pauseHint.classList.remove('visible');
     particles.length = 0;  // 清空粒子
@@ -1127,6 +1186,21 @@ function draw() {
     
     // 绘制升级动画
     drawLevelUpAnimation();
+
+    // 绘制加速指示器
+    if (gameState.speedBoosted && gameState.isGameRunning) {
+        const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 200);
+        ctx.save();
+        ctx.globalAlpha = 0.5 + pulse * 0.5;
+        ctx.font = 'bold 16px "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = '#ffdd57';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(255, 200, 50, 0.7)';
+        ctx.fillText('⚡', CANVAS_SIZE - 10, 10);
+        ctx.restore();
+    }
 }
 
 // 绘制蛇头
