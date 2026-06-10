@@ -90,6 +90,14 @@ const soundManager = {
         });
     },
 
+    // UI 点击反馈：短促清脆
+    clickSound() {
+        if (!this.enabled || !this.ctx) return;
+        this.resume();
+        const t = this.ctx.currentTime;
+        this._tone(880, t, 0.04, 'sine', 0.06);
+    },
+
     // 失败：下行悲鸣
     gameOverSound() {
         if (!this.enabled || !this.ctx) return;
@@ -352,7 +360,15 @@ function addEventListeners() {
     // 音效开关
     soundToggleBtn.addEventListener('click', () => {
         soundManager.init(); // 首次点击初始化 AudioContext
+        // 关闭前先播放点击音效（此时音效仍开启，用户能听到关闭反馈）
+        if (soundManager.enabled) {
+            soundManager.clickSound();
+        }
         const on = soundManager.toggle();
+        // 开启后也播放点击音效（此时音效已开启，用户能听到开启反馈）
+        if (on) {
+            soundManager.clickSound();
+        }
         soundToggleBtn.textContent = on ? '🔊' : '🔇';
         soundToggleBtn.classList.toggle('muted', !on);
         // 重新开启音效时，如果游戏正在运行，恢复背景音乐
@@ -363,6 +379,7 @@ function addEventListeners() {
     });
 
     vibeToggleBtn.addEventListener('click', () => {
+        soundManager.clickSound();
         const on = hapticManager.toggle();
         vibeToggleBtn.textContent = on ? '📳' : '🔕';
         vibeToggleBtn.classList.toggle('muted', !on);
@@ -537,6 +554,8 @@ function startGame() {
         return;
     }
 
+    soundManager.clickSound();
+
     // 冲刷可能存在的 game over pending 震动（用户手势中触发）
     if (hapticManager._pending !== null) {
         hapticManager._vibrateNow(hapticManager._pending);
@@ -615,6 +634,7 @@ function showCountdown(callback) {
 // 暂停/继续
 function togglePause() {
     if (gameState.isGameRunning && !countdownTimer) {
+        soundManager.clickSound();
         gameState.isPaused = !gameState.isPaused;
         pauseBtn.textContent = gameState.isPaused ? '▶ 继续' : '⏸ 暂停';
         updateDpadCenterIcon();
@@ -665,6 +685,8 @@ function setDifficulty(difficulty) {
     [diffEasy, diffNormal, diffHard].forEach(btn => btn.classList.remove('active'));
     const activeBtn = { easy: diffEasy, normal: diffNormal, hard: diffHard }[difficulty];
     if (activeBtn) activeBtn.classList.add('active');
+
+    soundManager.clickSound();
 
     // 如果不在游戏中，立即更新显示
     if (!gameState.isGameRunning) {
