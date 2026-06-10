@@ -299,11 +299,13 @@ button,
 
 .game-area {
     flex: 1;
+    min-width: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     background: #0a0a0a;
     border-radius: 15px;
+    overflow: hidden;
 }
 
 .game-stage {
@@ -358,6 +360,8 @@ button,
 #gameCanvas {
     background: #0a0a0a;
     display: block;
+    max-width: 100%;
+    max-height: 100%;
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
