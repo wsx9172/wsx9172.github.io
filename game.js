@@ -159,18 +159,6 @@ const soundManager = {
         }
     },
 
-    // 游戏进行中的轻击节奏（每步一响）
-    stepTick: 0,
-    stepSound() {
-        if (!this.enabled || !this.ctx) return;
-        this.resume();
-        this.stepTick = (this.stepTick + 1) % 4;
-        // 每 4 步一个轻微低频脉冲
-        if (this.stepTick === 0) {
-            const t = this.ctx.currentTime;
-            this._tone(110, t, 0.06, 'sine', 0.03);
-        }
-    }
 };
 
 // ========== 震动反馈系统 ==========
@@ -824,7 +812,6 @@ function gameLoop() {
     draw();
 
     // 递归调用下一次循环
-    soundManager.stepSound();
     setTimeout(gameLoop, gameState.gameSpeed);
 }
 
