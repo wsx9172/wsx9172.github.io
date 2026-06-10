@@ -17,6 +17,10 @@ const soundManager = {
     bgNodes: null,
 
     init() {
+        // 如果 ctx 已关闭则重建
+        if (this.ctx && this.ctx.state === 'closed') {
+            this.ctx = null;
+        }
         if (this.ctx) return;
         try {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -351,6 +355,11 @@ function addEventListeners() {
         const on = soundManager.toggle();
         soundToggleBtn.textContent = on ? '🔊' : '🔇';
         soundToggleBtn.classList.toggle('muted', !on);
+        // 重新开启音效时，如果游戏正在运行，恢复背景音乐
+        if (on && gameState.isGameRunning && !gameState.isPaused) {
+            soundManager.startBackground();
+            soundManager.updateBgTempo(gameState.level);
+        }
     });
 
     vibeToggleBtn.addEventListener('click', () => {
