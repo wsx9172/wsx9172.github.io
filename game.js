@@ -227,7 +227,7 @@ const gameState = {
     level: 1,
     isGameRunning: false,
     isPaused: false,
-    gameSpeed: 120
+    gameSpeed: 180
 };
 
 // 粒子系统
@@ -652,7 +652,7 @@ function resetGame() {
     gameState.directionQueue = [];
     gameState.score = 0;
     gameState.level = 1;
-    gameState.gameSpeed = 120;
+    gameState.gameSpeed = 180;  // 降低重置时的初始速度（原来是120）
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     particles.length = 0;  // 清空粒子
@@ -765,7 +765,8 @@ function gameLoop() {
         const newLevel = Math.floor(totalFoodEaten / 10) + 1;
         if (newLevel > gameState.level) {
             gameState.level = newLevel;
-            gameState.gameSpeed = Math.max(50, 120 - (gameState.level - 1) * 10);
+            // 降低速度递增幅度：从每级减少10ms改为减少5ms，最低速度从50ms提高到80ms
+            gameState.gameSpeed = Math.max(80, 180 - (gameState.level - 1) * 5);
 
             soundManager.levelUpSound();
             hapticManager.levelUpFeedback();
