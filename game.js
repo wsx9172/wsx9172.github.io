@@ -14,7 +14,6 @@ const DIFFICULTY = {
 const soundManager = {
     enabled: true,
     ctx: null,
-    bgNodes: null,
 
     init() {
         // 如果 ctx 已关闭则重建
@@ -162,62 +161,8 @@ const soundManager = {
             clearTimeout(this._bgTimer);
             this._bgTimer = null;
         }
-        if (this.bgNodes) {
-            Object.values(this.bgNodes).forEach(n => {
-                try { n.stop(); } catch (e) {}
-                try { n.disconnect(); } catch (e) {}
-            });
-            this.bgNodes = null;
-        }
-    },
+    }
 
-};
-
-// ========== 震动反馈系统 ==========
-// Chrome 要求：HTTPS（或 localhost）+ 用户手势同步调用 + 前台标签页
-const hapticManager = {
-    enabled: true,
-    _supported: typeof navigator.vibrate === 'function',
-    _pending: null,
-
-    toggle() {
-        this.enabled = !this.enabled;
-        if (!this.enabled) {
-            try { navigator.vibrate(0); } catch (e) {}
-            return false;
-        }
-        // 打开时立即测试震动（用户手势中调用，可靠触发）
-        if (this._supported) {
-            try { navigator.vibrate(40); } catch (e) {}
-        }
-        return true;
-    },
-
-    // 必须在用户手势中调用（keydown / touchstart / click）
-    _vibrateNow(pattern) {
-        if (!this.enabled || !this._supported) return;
-        try { navigator.vibrate(pattern); } catch (e) {}
-    },
-
-    // 方向变更 + 冲刷 pending。由用户手势直接调用，可靠触发。
-    dirFeedback() {
-        if (!this.enabled || !this._supported) return;
-        if (this._pending !== null) {
-            const p = this._pending;
-            this._pending = null;
-            try { navigator.vibrate(Array.isArray(p) ? p.concat([50, 40]) : [p, 50, 40]); } catch (e) {
-                try { navigator.vibrate(40); } catch (e2) {}
-            }
-        } else {
-            try { navigator.vibrate(40); } catch (e) {}
-        }
-    },
-
-    // 以下方法在 setTimeout(gameLoop) 中调用，只存 pending，在下一次方向输入时冲刷
-    eatFeedback()       { this._pending = 40; },
-    levelUpFeedback()   { this._pending = [40, 50, 40]; },
-    victoryFeedback()   { this._pending = [50, 60, 50, 60, 50, 60, 150]; },
-    gameOverFeedback()  { this._pending = 250; }
 };
 
 // 游戏状态
@@ -319,7 +264,6 @@ const finalHighScoreDisplay = document.getElementById('finalHighScore');
 const pauseHint = document.getElementById('pauseHint');
 const startHint = document.getElementById('startHint');
 const soundToggleBtn = document.getElementById('soundToggleBtn');
-const vibeToggleBtn = document.getElementById('vibeToggleBtn');
 
 let countdownTimer = null;
 
@@ -376,13 +320,6 @@ function addEventListeners() {
             soundManager.startBackground();
             soundManager.updateBgTempo(gameState.level);
         }
-    });
-
-    vibeToggleBtn.addEventListener('click', () => {
-        soundManager.clickSound();
-        const on = hapticManager.toggle();
-        vibeToggleBtn.textContent = on ? '📳' : '🔕';
-        vibeToggleBtn.classList.toggle('muted', !on);
     });
 }
 
@@ -472,7 +409,6 @@ function applyDirection(direction) {
             gameState.directionQueue.push(direction);
         }
         gameState.nextDirection = direction;
-        hapticManager.dirFeedback();
     }
 }
 
@@ -555,12 +491,6 @@ function startGame() {
     }
 
     soundManager.clickSound();
-
-    // 冲刷可能存在的 game over pending 震动（用户手势中触发）
-    if (hapticManager._pending !== null) {
-        hapticManager._vibrateNow(hapticManager._pending);
-        hapticManager._pending = null;
-    }
 
     // 隐藏开始提示
     if (startHint) {
@@ -734,11 +664,6 @@ function resetGame() {
 
 // 重新开始
 function restartGame() {
-    // 在用户手势中立即触发游戏结束震动
-    if (hapticManager._pending !== null) {
-        hapticManager._vibrateNow(hapticManager._pending);
-        hapticManager._pending = null;
-    }
     resetGame();
     startGame();
 }
@@ -809,7 +734,6 @@ function gameLoop() {
         
         gameState.score += gameState.level;
         soundManager.eatSound();
-        hapticManager.eatFeedback();
 
         // 检查是否升级（每吃10个食物升一级）
         const totalFoodEaten = gameState.snake.length - 1; // 蛇的长度-1就是吃的食物总数
@@ -821,11 +745,9 @@ function gameLoop() {
             gameState.gameSpeed = Math.max(diff.minSpeed, diff.initialSpeed - (gameState.level - 1) * diff.speedDecrement);
 
             soundManager.levelUpSound();
-            hapticManager.levelUpFeedback();
             soundManager.updateBgTempo(gameState.level);
             if (gameState.level === 10) {
                 soundManager.victorySound();
-                hapticManager.victoryFeedback();
             }
 
             // 触发升级动画
@@ -1114,7 +1036,6 @@ function endGame() {
 
     soundManager.stopBackground();
     soundManager.gameOverSound();
-    hapticManager.gameOverFeedback();
 
     // 更新最高分
     if (gameState.score > gameState.highScore) {
