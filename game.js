@@ -609,7 +609,8 @@ function togglePause() {
         updateDpadCenterIcon();
         
         if (gameState.isPaused) {
-            pauseHint.textContent = '已暂停';
+            const isMobile = window.innerWidth <= 768;
+            pauseHint.textContent = isMobile ? '点击屏幕继续游戏' : '按空格键继续游戏';
             pauseHint.classList.add('visible');
 
             // 暂停时显示鼠标
