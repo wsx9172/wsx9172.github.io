@@ -192,6 +192,10 @@ const gameState = {
     speedBoosted: false
 };
 
+// 暂停/未运行时锁定的运动方向，用于反向检查参照
+// 暂停期间用户可自由旋转蛇头，只禁止与锁定方向相反的方向
+let pausedDirection = { x: 1, y: 0 };
+
 // 统一设置加速状态（同步 BGM 节奏）
 function setSpeedBoost(on) {
     gameState.speedBoosted = on;
@@ -349,27 +353,30 @@ function handleKeyPress(event) {
     const key = event.key;
     let direction = null;
     
+    // 运行中的输入检查较严（同轴不连续输入），暂停/未运行时由 applyDirection 统一校验
+    const isActivelyRunning = gameState.isGameRunning && !gameState.isPaused && !countdownTimer;
+
     switch (key) {
         case 'ArrowUp':
-            if (gameState.direction.y === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].y === 0)) {
+            if (!isActivelyRunning || (gameState.direction.y === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].y === 0))) {
                 direction = { x: 0, y: -1 };
             }
             event.preventDefault();
             break;
         case 'ArrowDown':
-            if (gameState.direction.y === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].y === 0)) {
+            if (!isActivelyRunning || (gameState.direction.y === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].y === 0))) {
                 direction = { x: 0, y: 1 };
             }
             event.preventDefault();
             break;
         case 'ArrowLeft':
-            if (gameState.direction.x === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].x === 0)) {
+            if (!isActivelyRunning || (gameState.direction.x === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].x === 0))) {
                 direction = { x: -1, y: 0 };
             }
             event.preventDefault();
             break;
         case 'ArrowRight':
-            if (gameState.direction.x === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].x === 0)) {
+            if (!isActivelyRunning || (gameState.direction.x === 0 && (gameState.directionQueue.length === 0 || gameState.directionQueue[gameState.directionQueue.length - 1].x === 0))) {
                 direction = { x: 1, y: 0 };
             }
             event.preventDefault();
@@ -409,8 +416,8 @@ function handleKeyUp(event) {
 function applyDirection(direction) {
     if (!gameState.isGameRunning || gameState.isPaused || countdownTimer) {
         // 未开始、暂停或倒计时中：直接更新蛇头朝向
-        // 不允许反向
-        if (direction.x === -gameState.direction.x && direction.y === -gameState.direction.y) return;
+        // 只禁止与锁定方向相反的方向（暂停期间可自由旋转蛇头）
+        if (direction.x === -pausedDirection.x && direction.y === -pausedDirection.y) return;
         if (direction.x === 0 && direction.y === 0) return;
         // 不允许朝向身体（避免游戏一开始就碰撞自己）
         const head = gameState.snake[0];
@@ -603,6 +610,9 @@ function togglePause() {
         updateDpadCenterIcon();
         
         if (gameState.isPaused) {
+            // 锁定暂停时的运动方向，用于暂停期间反向检查
+            pausedDirection = { x: gameState.direction.x, y: gameState.direction.y };
+
             const isMobile = window.innerWidth <= 768;
             pauseHint.textContent = isMobile ? '点击屏幕继续游戏' : '按空格键继续游戏';
             pauseHint.classList.add('visible');
@@ -664,6 +674,7 @@ function resetGame() {
     gameState.direction = { x: 1, y: 0 };
     gameState.nextDirection = { x: 1, y: 0 };
     gameState.directionQueue = [];
+    pausedDirection = { x: 1, y: 0 };
     gameState.score = 0;
     gameState.level = 1;
     gameState.gameSpeed = DIFFICULTY[gameState.difficulty].initialSpeed;
@@ -952,8 +963,8 @@ function setupDpadControls() {
     function onDirectionDown(direction, e) {
         e.preventDefault();
 
-        // 检查方向合法性
-        if (gameState.isGameRunning && !gameState.isPaused) {
+        // 运行中（非暂停、非倒计时）才做严格同轴检查，暂停/未运行时由 applyDirection 统一校验
+        if (gameState.isGameRunning && !gameState.isPaused && !countdownTimer) {
             const lastDir = gameState.directionQueue.length > 0
                 ? gameState.directionQueue[gameState.directionQueue.length - 1]
                 : gameState.direction;
@@ -963,8 +974,8 @@ function setupDpadControls() {
 
         applyDirection(direction);
 
-        // 启动长按计时器（游戏运行中且未暂停时生效）
-        if (gameState.isGameRunning && !gameState.isPaused) {
+        // 启动长按计时器（游戏运行中、非暂停、非倒计时时生效）
+        if (gameState.isGameRunning && !gameState.isPaused && !countdownTimer) {
             clearLongPress();
             longPressTimer = setTimeout(() => {
                 setSpeedBoost(true);
@@ -1116,6 +1127,7 @@ function endGame() {
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     setSpeedBoost(false);
+    pausedDirection = { x: gameState.direction.x, y: gameState.direction.y };
     pauseHint.textContent = '';
     pauseHint.classList.remove('visible');
     particles.length = 0;  // 清空粒子
