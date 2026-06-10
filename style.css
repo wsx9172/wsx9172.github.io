@@ -132,6 +132,38 @@ body {
     transform: none;
 }
 
+.difficulty-row {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+}
+
+.btn-difficulty {
+    flex: 1;
+    padding: 6px 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-weight: 500;
+}
+
+.btn-difficulty:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-difficulty.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-color: transparent;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 .toggles-row {
     display: flex;
     flex-direction: row;
@@ -605,10 +637,19 @@ body {
         gap: 4px;
     }
 
+    .difficulty-row {
+        gap: 3px;
+    }
+
     .btn-icon {
         width: 30px;
         height: 30px;
         font-size: 0.8em;
+    }
+
+    .btn-difficulty {
+        font-size: 0.7em;
+        padding: 5px 3px;
     }
 
     .icon-play {

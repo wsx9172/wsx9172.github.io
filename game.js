@@ -3,6 +3,13 @@ const GRID_SIZE = 20;
 const CANVAS_SIZE = 600;
 const CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
 
+// 难度配置
+const DIFFICULTY = {
+    easy:   { label: '简单', initialSpeed: 220, speedDecrement: 3,  minSpeed: 100 },
+    normal: { label: '普通', initialSpeed: 180, speedDecrement: 5,  minSpeed: 80 },
+    hard:   { label: '困难', initialSpeed: 140, speedDecrement: 7,  minSpeed: 50 }
+};
+
 // ========== 音效系统 ==========
 const soundManager = {
     enabled: true,
@@ -227,7 +234,8 @@ const gameState = {
     level: 1,
     isGameRunning: false,
     isPaused: false,
-    gameSpeed: 180
+    difficulty: 'normal',
+    gameSpeed: DIFFICULTY.normal.initialSpeed
 };
 
 // 粒子系统
@@ -301,8 +309,10 @@ const highScoreDisplay = document.getElementById('highScore');
 const levelDisplay = document.getElementById('level');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
-const resetBtn = document.getElementById('resetBtn');
 const restartBtn = document.getElementById('restartBtn');
+const diffEasy = document.getElementById('diffEasy');
+const diffNormal = document.getElementById('diffNormal');
+const diffHard = document.getElementById('diffHard');
 const gameOverModal = document.getElementById('gameOverModal');
 const finalScoreDisplay = document.getElementById('finalScore');
 const finalHighScoreDisplay = document.getElementById('finalHighScore');
@@ -340,8 +350,12 @@ function addEventListeners() {
     canvas.addEventListener('click', handleCanvasTap);
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
-    resetBtn.addEventListener('click', resetGame);
     restartBtn.addEventListener('click', restartGame);
+
+    // 难度切换
+    diffEasy.addEventListener('click', () => setDifficulty('easy'));
+    diffNormal.addEventListener('click', () => setDifficulty('normal'));
+    diffHard.addEventListener('click', () => setDifficulty('hard'));
 
     // 音效开关
     soundToggleBtn.addEventListener('click', () => {
@@ -644,6 +658,23 @@ function togglePause() {
     }
 }
 
+// 切换难度（仅在游戏未运行时生效）
+function setDifficulty(difficulty) {
+    if (gameState.isGameRunning && !gameState.isPaused) return; // 游戏运行中不允许切换
+    gameState.difficulty = difficulty;
+    gameState.gameSpeed = DIFFICULTY[difficulty].initialSpeed;
+
+    // 更新按钮激活状态
+    [diffEasy, diffNormal, diffHard].forEach(btn => btn.classList.remove('active'));
+    const activeBtn = { easy: diffEasy, normal: diffNormal, hard: diffHard }[difficulty];
+    if (activeBtn) activeBtn.classList.add('active');
+
+    // 如果不在游戏中，立即更新显示
+    if (!gameState.isGameRunning) {
+        draw();
+    }
+}
+
 // 重置游戏
 function resetGame() {
     clearCountdownTimer();
@@ -653,7 +684,7 @@ function resetGame() {
     gameState.directionQueue = [];
     gameState.score = 0;
     gameState.level = 1;
-    gameState.gameSpeed = 180;  // 降低重置时的初始速度（原来是120）
+    gameState.gameSpeed = DIFFICULTY[gameState.difficulty].initialSpeed;
     gameState.isGameRunning = false;
     gameState.isPaused = false;
     particles.length = 0;  // 清空粒子
@@ -767,7 +798,8 @@ function gameLoop() {
         if (newLevel > gameState.level) {
             gameState.level = newLevel;
             // 降低速度递增幅度：从每级减少10ms改为减少5ms，最低速度从50ms提高到80ms
-            gameState.gameSpeed = Math.max(80, 180 - (gameState.level - 1) * 5);
+            const diff = DIFFICULTY[gameState.difficulty];
+            gameState.gameSpeed = Math.max(diff.minSpeed, diff.initialSpeed - (gameState.level - 1) * diff.speedDecrement);
 
             soundManager.levelUpSound();
             hapticManager.levelUpFeedback();
