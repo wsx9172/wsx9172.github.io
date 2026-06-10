@@ -3,6 +3,9 @@ const GRID_SIZE = 20;
 const CANVAS_SIZE = 600;
 const CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
 
+// 长按加速倍率
+const SPEED_BOOST_MULTIPLIER = 1.5;
+
 // 难度配置
 const DIFFICULTY = {
     easy:   { label: '简单', initialSpeed: 220, speedDecrement: 3,  minSpeed: 100 },
@@ -111,7 +114,7 @@ const soundManager = {
     _bgTimer: null,
     _bgNoteIndex: 0,
     _bgTempo: 220,        // ms/音符，随等级加快
-    _boostMultiplier: 1,  // 加速倍率，长按时为 3
+    _boostMultiplier: 1,  // 加速倍率，长按时为 SPEED_BOOST_MULTIPLIER
 
     // 五声音阶旋律序列（C5→A5 范围，上行下行交替）
     _bgMelody: [
@@ -188,7 +191,7 @@ const gameState = {
 // 统一设置加速状态（同步 BGM 节奏）
 function setSpeedBoost(on) {
     gameState.speedBoosted = on;
-    soundManager._boostMultiplier = on ? 3 : 1;
+    soundManager._boostMultiplier = on ? SPEED_BOOST_MULTIPLIER : 1;
 }
 
 // 粒子系统
@@ -786,9 +789,9 @@ function gameLoop() {
     // 绘制游戏
     draw();
 
-    // 递归调用下一次循环（长按加速时速度提升 3 倍）
+    // 递归调用下一次循环（长按加速时速度按倍率提升）
     const effectiveSpeed = gameState.speedBoosted
-        ? Math.max(30, Math.floor(gameState.gameSpeed / 3))
+        ? Math.max(30, Math.floor(gameState.gameSpeed / soundManager._boostMultiplier))
         : gameState.gameSpeed;
     setTimeout(gameLoop, effectiveSpeed);
 }
