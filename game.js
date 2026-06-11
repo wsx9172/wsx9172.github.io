@@ -274,6 +274,7 @@ const levelDisplay = document.getElementById('level');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const restartBtn = document.getElementById('restartBtn');
+const homeBtn = document.getElementById('homeBtn');
 const diffEasy = document.getElementById('diffEasy');
 const diffNormal = document.getElementById('diffNormal');
 const diffHard = document.getElementById('diffHard');
@@ -320,6 +321,7 @@ function addEventListeners() {
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', restartGame);
+    homeBtn.addEventListener('click', goHome);
 
     // 难度切换
     diffEasy.addEventListener('click', () => setDifficulty('easy'));
@@ -711,6 +713,11 @@ function resetGame() {
 function restartGame() {
     resetGame();
     startGame();
+}
+
+// 返回主页（只重置，不开始游戏）
+function goHome() {
+    resetGame();
 }
 
 // 游戏循环
