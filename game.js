@@ -288,6 +288,164 @@ const soundToggleBtn = document.getElementById('soundToggleBtn');
 
 let countdownTimer = null;
 
+// ===== 复活系统 =====
+const REVIVE_BACK_SECONDS = 5;   // 恢复到死亡前 N 秒
+const SNAPSHOT_MAX = 200;        // 最多保存的快照数
+const AD_DURATION = 30;          // 广告时长（秒）
+
+let snapshotHistory = [];         // { time, snake, food, direction, nextDirection, directionQueue, score, level, gameSpeed }
+let reviveSnapshot = null;       // 复活时使用的快照
+let hasRevived = false;          // 本局是否已复活
+let adTimer = null;              // 广告倒计时定时器
+let isWatchingAd = false;        // 是否正在观看广告
+
+// 保存当前游戏状态快照
+function takeSnapshot() {
+    snapshotHistory.push({
+        time: Date.now(),
+        snake: gameState.snake.map(seg => ({ x: seg.x, y: seg.y })),
+        food: { x: gameState.food.x, y: gameState.food.y },
+        direction: { x: gameState.direction.x, y: gameState.direction.y },
+        nextDirection: { x: gameState.nextDirection.x, y: gameState.nextDirection.y },
+        directionQueue: gameState.directionQueue.map(d => ({ x: d.x, y: d.y })),
+        score: gameState.score,
+        level: gameState.level,
+        gameSpeed: gameState.gameSpeed
+    });
+    if (snapshotHistory.length > SNAPSHOT_MAX) {
+        snapshotHistory.shift();
+    }
+}
+
+// 获取复活快照（死亡前 REVIVE_BACK_SECONDS 秒的状态）
+function getReviveSnapshot() {
+    if (snapshotHistory.length === 0) return null;
+    const targetTime = Date.now() - REVIVE_BACK_SECONDS * 1000;
+    // 找到时间戳 ≤ targetTime 的最接近快照
+    let best = snapshotHistory[0];
+    for (let i = 1; i < snapshotHistory.length; i++) {
+        if (snapshotHistory[i].time <= targetTime) {
+            best = snapshotHistory[i];
+        } else {
+            break;
+        }
+    }
+    return best;
+}
+
+// 从快照恢复游戏状态
+function restoreSnapshot(snap) {
+    gameState.snake = snap.snake.map(seg => ({ x: seg.x, y: seg.y }));
+    gameState.food = { x: snap.food.x, y: snap.food.y };
+    gameState.direction = { x: snap.direction.x, y: snap.direction.y };
+    gameState.nextDirection = { x: snap.nextDirection.x, y: snap.nextDirection.y };
+    gameState.directionQueue = snap.directionQueue.map(d => ({ x: d.x, y: d.y }));
+    gameState.score = snap.score;
+    gameState.level = snap.level;
+    gameState.gameSpeed = snap.gameSpeed;
+    pausedDirection = { x: snap.direction.x, y: snap.direction.y };
+    updateDisplay();
+    soundManager.updateBgTempo(gameState.level);
+}
+
+// 取消广告倒计时
+function cancelAdCountdown() {
+    if (adTimer) {
+        clearTimeout(adTimer);
+        adTimer = null;
+    }
+    isWatchingAd = false;
+    pauseHint.classList.remove('visible', 'countdown', 'ad-countdown');
+    pauseHint.textContent = '';
+}
+
+// 开始看广告复活
+function startReviveAd() {
+    if (isWatchingAd) return;
+
+    reviveSnapshot = getReviveSnapshot();
+    if (!reviveSnapshot) {
+        // 没有快照，降级为普通重启
+        restartGame();
+        return;
+    }
+
+    soundManager.clickSound();
+
+    // 隐藏弹窗
+    gameOverModal.classList.remove('show');
+
+    // 开始广告倒计时
+    isWatchingAd = true;
+    canvas.style.cursor = 'none';
+    adCountdown(AD_DURATION, completeRevive);
+}
+
+// 广告倒计时
+function adCountdown(remaining, callback) {
+    if (remaining > 0) {
+        pauseHint.textContent = '📺  广告剩余 ' + remaining + ' 秒';
+        pauseHint.classList.add('visible', 'ad-countdown');
+        adTimer = setTimeout(() => adCountdown(remaining - 1, callback), 1000);
+    } else {
+        clearAdCountdown();
+        if (callback) callback();
+    }
+}
+
+function clearAdCountdown() {
+    if (adTimer) {
+        clearTimeout(adTimer);
+        adTimer = null;
+    }
+    pauseHint.classList.remove('visible', 'ad-countdown');
+    pauseHint.textContent = '';
+}
+
+// 广告结束，复活
+function completeRevive() {
+    isWatchingAd = false;
+
+    if (!reviveSnapshot) {
+        restartGame();
+        return;
+    }
+
+    // 恢复状态
+    restoreSnapshot(reviveSnapshot);
+    reviveSnapshot = null;
+    hasRevived = true;
+
+    // 隐藏开始提示
+    if (startHint) {
+        startHint.style.display = 'none';
+    }
+
+    // 清空粒子
+    particles.length = 0;
+
+    // 重绘
+    draw();
+
+    // 倒计时后恢复游戏
+    startBtn.disabled = true;
+    pauseBtn.disabled = true;
+    canvas.style.cursor = 'none';
+
+    showCountdown(() => {
+        if (!gameState.isGameRunning && !gameState.isPaused) {
+            gameState.isGameRunning = true;
+            gameState.isPaused = false;
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            updateDpadCenterIcon();
+            soundManager.startBackground();
+            soundManager.updateBgTempo(gameState.level);
+            gameLoop();
+        }
+    });
+}
+
 // 触屏状态
 let touchStartX = 0;
 let touchStartY = 0;
@@ -324,6 +482,12 @@ function addEventListeners() {
     restartBtn.addEventListener('click', restartGame);
     homeBtn.addEventListener('click', goHome);
     shareBtn.addEventListener('click', saveResultImage);
+
+    // 复活按钮
+    const reviveBtn = document.getElementById('reviveBtn');
+    if (reviveBtn) {
+        reviveBtn.addEventListener('click', startReviveAd);
+    }
 
     // 难度切换
     diffEasy.addEventListener('click', () => setDifficulty('easy'));
@@ -529,8 +693,8 @@ function handleCanvasTap(e) {
 
 // 开始游戏
 function startGame() {
-    // 如果游戏已经在运行，或者有倒计时在进行，直接返回
-    if (gameState.isGameRunning || countdownTimer) {
+    // 如果游戏已经在运行，或者有倒计时/广告在进行，直接返回
+    if (gameState.isGameRunning || countdownTimer || isWatchingAd) {
         return;
     }
 
@@ -673,6 +837,11 @@ function setDifficulty(difficulty) {
 // 重置游戏
 function resetGame() {
     clearCountdownTimer();
+    cancelAdCountdown();
+    hasRevived = false;
+    isWatchingAd = false;
+    snapshotHistory = [];
+    reviveSnapshot = null;
     gameState.snake = [{ x: 10, y: 10 }];
     gameState.direction = { x: 1, y: 0 };
     gameState.nextDirection = { x: 1, y: 0 };
@@ -967,6 +1136,9 @@ function gameLoop() {
 
     // 绘制游戏
     draw();
+
+    // 保存快照（用于复活）
+    takeSnapshot();
 
     // 递归调用下一次循环（长按加速时速度按倍率提升）
     const effectiveSpeed = gameState.speedBoosted
@@ -1308,6 +1480,13 @@ function endGame() {
     document.getElementById('finalLevel').textContent = gameState.level;
     const fruit = getFruit(gameState.level);
     document.getElementById('finalFruit').textContent = fruit.emoji;
+
+    // 控制复活按钮：仅当本局未复活过且不在看广告时才显示
+    const reviveBtn = document.getElementById('reviveBtn');
+    if (reviveBtn) {
+        reviveBtn.style.display = (!hasRevived && !isWatchingAd) ? '' : 'none';
+    }
+
     gameOverModal.classList.add('show');
 
     // 重置按钮状态
