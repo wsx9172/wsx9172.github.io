@@ -610,7 +610,7 @@ function togglePause() {
     if (gameState.isGameRunning && !countdownTimer) {
         soundManager.clickSound();
         gameState.isPaused = !gameState.isPaused;
-        pauseBtn.textContent = gameState.isPaused ? '▶  继续' : '⏸  暂停';
+        pauseBtn.textContent = gameState.isPaused ? ' 继续 ' : ' 暂停 ';
         updateDpadCenterIcon();
         
         if (gameState.isPaused) {
@@ -726,26 +726,48 @@ async function shareGame() {
     const text = `🐍 贪吃蛇 — 得分 ${gameState.score}，等级 ${gameState.level}`;
     const url = window.location.href;
 
-    try {
-        if (navigator.share) {
+    // 尝试原生分享（移动端系统分享面板）
+    if (navigator.share) {
+        try {
             await navigator.share({ title: '贪吃蛇', text, url });
-        } else {
-            await navigator.clipboard.writeText(`${text}\n${url}`);
-            // 临时反馈
-            const orig = shareBtn.innerHTML;
-            shareBtn.innerHTML = '<span style="font-size:1.2em">✓</span>';
-            setTimeout(() => { shareBtn.innerHTML = orig; }, 1200);
+            return; // 系统分享面板已打开
+        } catch (e) {
+            if (e.name === 'AbortError') return; // 用户取消
+            // 分享失败，降级复制
         }
-    } catch (e) {
-        // 用户取消分享或剪贴板失败，静默忽略
-        if (e.name !== 'AbortError') {
-            try {
-                await navigator.clipboard.writeText(`${text}\n${url}`);
-                const orig = shareBtn.innerHTML;
-                shareBtn.innerHTML = '<span style="font-size:1.2em">✓</span>';
-                setTimeout(() => { shareBtn.innerHTML = orig; }, 1200);
-            } catch (_) { /* 忽略 */ }
-        }
+    }
+
+    // 降级：复制链接到剪贴板
+    let copied = false;
+    try {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        copied = true;
+    } catch (_) {
+        // navigator.clipboard 不可用，降级传统方式
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = `${text}\n${url}`;
+            ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            copied = true;
+        } catch (__) { /* 完全失败 */ }
+    }
+
+    if (copied) {
+        const orig = shareBtn.innerHTML;
+        shareBtn.innerHTML = '<span style="font-size:1.2em">✓</span>';
+        // 用暂停提示显示 toast
+        pauseHint.textContent = '链接已复制，去粘贴分享吧';
+        pauseHint.classList.add('visible');
+        pauseHint.classList.remove('countdown');
+        setTimeout(() => {
+            shareBtn.innerHTML = orig;
+            pauseHint.classList.remove('visible');
+            pauseHint.textContent = '';
+        }, 1800);
     }
 }
 
