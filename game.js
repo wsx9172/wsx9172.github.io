@@ -365,7 +365,6 @@ function startReviveAd() {
 
     reviveSnapshot = getReviveSnapshot();
     if (!reviveSnapshot) {
-        // 没有快照，降级为普通重启
         restartGame();
         return;
     }
@@ -374,14 +373,54 @@ function startReviveAd() {
 
     // 隐藏弹窗
     gameOverModal.classList.remove('show');
-
-    // 开始广告倒计时
     isWatchingAd = true;
     canvas.style.cursor = 'none';
-    adCountdown(AD_DURATION, completeRevive);
+
+    // 尝试 Google H5 激励广告，不可用时降级为模拟倒计时
+    if (typeof adBreak === 'function') {
+        let adCompleted = false;
+
+        adBreak({
+            type: 'reward',
+            name: 'revive',
+            beforeAd: () => {
+                soundManager.stopBackground();
+            },
+            afterAd: () => {
+                // 广告关闭后的清理（无论是否看完）
+            },
+            beforeReward: (showAdFn) => {
+                // 用户已在弹窗中点击"看广告复活"，直接展示广告
+                showAdFn();
+            },
+            adViewed: () => {
+                // 用户完整观看了广告 → 发放奖励
+                adCompleted = true;
+                doRevive();
+            },
+            adDismissed: () => {
+                // 广告被跳过或关闭（无奖励）
+            },
+            adBreakDone: () => {
+                // 广告流程结束（无论完成/跳过/无广告）
+                if (!adCompleted) {
+                    // 无广告可用或用户跳过 → 降级为模拟倒计时
+                    showSimulatedAd();
+                }
+            }
+        });
+    } else {
+        // Google H5 Ads API 不可用 → 模拟倒计时
+        showSimulatedAd();
+    }
 }
 
-// 广告倒计时
+// 模拟广告倒计时（降级方案）
+function showSimulatedAd() {
+    if (!isWatchingAd) return;
+    adCountdown(AD_DURATION, doRevive);
+}
+
 function adCountdown(remaining, callback) {
     if (remaining > 0) {
         pauseHint.textContent = '📺  广告剩余 ' + remaining + ' 秒';
@@ -402,8 +441,8 @@ function clearAdCountdown() {
     pauseHint.textContent = '';
 }
 
-// 广告结束，复活
-function completeRevive() {
+// 执行复活（广告观看完毕或模拟倒计时结束）
+function doRevive() {
     isWatchingAd = false;
 
     if (!reviveSnapshot) {
@@ -466,6 +505,17 @@ function init() {
         resizeCanvas();
         draw();
     });
+
+    // 初始化 Google H5 激励广告 API
+    if (typeof adConfig === 'function') {
+        adConfig({
+            sound: 'on',
+            preloadAdBreaks: 'auto',
+            onReady: () => {
+                console.log('H5 Ads API ready');
+            }
+        });
+    }
 }
 
 // 添加事件监听
