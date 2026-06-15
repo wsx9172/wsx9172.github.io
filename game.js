@@ -688,9 +688,9 @@ function resetGame() {
     updateDpadCenterIcon();
     soundManager.stopBackground();
 
-    startBtn.textContent = '▶  开始游戏';
+    startBtn.textContent = '开始游戏';
     startBtn.disabled = false;
-    pauseBtn.textContent = '⏸  暂停';
+    pauseBtn.textContent = '暂停';
     pauseBtn.disabled = true;
     pauseHint.textContent = '';
     pauseHint.classList.remove('visible');
@@ -1210,9 +1210,9 @@ function endGame() {
     gameOverModal.classList.add('show');
 
     // 重置按钮状态
-    startBtn.textContent = '▶  开始游戏';
+    startBtn.textContent = '开始游戏';
     startBtn.disabled = false;
-    pauseBtn.textContent = '⏸  暂停';
+    pauseBtn.textContent = '暂停';
     pauseBtn.disabled = true;
     
     // 显示开始提示
