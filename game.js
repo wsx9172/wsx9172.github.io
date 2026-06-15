@@ -544,20 +544,20 @@ function startGame() {
     startBtn.disabled = true;
     pauseBtn.disabled = true;
 
+    // 倒计时开始就隐藏鼠标
+    canvas.style.cursor = 'none';
+
     showCountdown(() => {
         // 双重检查：确保在回调执行时游戏仍然处于未运行状态
         if (gameState.isGameRunning || !startBtn.disabled) {
             return;
         }
-        
+
         gameState.isGameRunning = true;
         gameState.isPaused = false;
         startBtn.disabled = true;
         pauseBtn.disabled = false;
         updateDpadCenterIcon();
-
-        // 隐藏鼠标
-        canvas.style.cursor = 'none';
 
         soundManager.startBackground();
 
@@ -625,19 +625,18 @@ function togglePause() {
             // 暂停背景音乐
             soundManager.stopBackground();
         } else {
-            // 从暂停恢复时显示倒计时
+            // 从暂停恢复时显示倒计时，立即隐藏鼠标
             pauseBtn.disabled = true;
+            canvas.style.cursor = 'none';
             showCountdown(() => {
                 // 双重检查：确保游戏仍然处于暂停恢复状态
                 if (!gameState.isGameRunning || gameState.isPaused) {
                     pauseBtn.disabled = false;
                     return;
                 }
-                
+
                 pauseBtn.disabled = false;
 
-                // 恢复游戏后隐藏鼠标
-                canvas.style.cursor = 'none';
                 updateDpadCenterIcon();
 
                 // 恢复背景音乐
