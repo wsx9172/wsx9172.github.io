@@ -323,7 +323,7 @@ function addEventListeners() {
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', restartGame);
     homeBtn.addEventListener('click', goHome);
-    shareBtn.addEventListener('click', shareGame);
+    shareBtn.addEventListener('click', saveResultImage);
 
     // 难度切换
     diffEasy.addEventListener('click', () => setDifficulty('easy'));
@@ -721,54 +721,155 @@ function goHome() {
     resetGame();
 }
 
-// 分享
-async function shareGame() {
-    const text = `🐍 贪吃蛇 — 得分 ${gameState.score}，等级 ${gameState.level}`;
-    const url = window.location.href;
+// ===== 分享面板 =====
+// 兼容所有浏览器的圆角矩形
+function drawRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
 
-    // 尝试原生分享（移动端系统分享面板）
-    if (navigator.share) {
-        try {
-            await navigator.share({ title: '贪吃蛇', text, url });
-            return; // 系统分享面板已打开
-        } catch (e) {
-            if (e.name === 'AbortError') return; // 用户取消
-            // 分享失败，降级复制
-        }
-    }
+// ===== 生成结果卡片 Canvas（QQ分享和保存图片共用） =====
+function generateResultCard() {
+    const fruit = getFruit(gameState.level);
+    const cardW = 750;
+    const cardH = 820;
 
-    // 降级：复制链接到剪贴板
-    let copied = false;
+    const canvas = document.createElement('canvas');
+    canvas.width = cardW;
+    canvas.height = cardH;
+    const ctx = canvas.getContext('2d');
+
+    // 白色底
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, cardW, cardH);
+
+    // 顶部紫色横幅
+    const bannerH = 190;
+    const bg = ctx.createLinearGradient(0, 0, cardW, 0);
+    bg.addColorStop(0, '#667eea');
+    bg.addColorStop(1, '#764ba2');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, cardW, bannerH);
+
+    // 标题
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 54px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐍  贪 吃 蛇', cardW / 2, 78);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '24px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText('游 戏 战 绩', cardW / 2, 126);
+
+    // 转场弧线
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(cardW / 2, bannerH, cardW / 2 + 2, 36, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 水果 emoji（无背景）
+    const fruitY = 275;
+    ctx.font = '110px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+    ctx.fillText(fruit.emoji, cardW / 2, fruitY);
+
+    // 得分 —— 超大
+    const scoreY = 400;
+    ctx.fillStyle = '#222';
+    ctx.font = 'bold 110px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText(String(gameState.score), cardW / 2, scoreY);
+
+    ctx.fillStyle = '#888';
+    ctx.font = 'bold 26px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText('最终得分', cardW / 2, scoreY + 44);
+
+    // 分隔线
+    const sepY = 485;
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(100, sepY);
+    ctx.lineTo(cardW - 100, sepY);
+    ctx.stroke();
+
+    // 最高分 + 等级（并排大字）
+    const rowY = 580;
+    const leftX = cardW / 2 - 120;
+    const rightX = cardW / 2 + 120;
+
+    ctx.fillStyle = '#667eea';
+    ctx.font = 'bold 52px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(gameState.highScore), leftX, rowY);
+    ctx.fillText('Lv.' + gameState.level, rightX, rowY);
+
+    ctx.fillStyle = '#999';
+    ctx.font = 'bold 22px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText('最高分', leftX, rowY + 36);
+    ctx.fillText('等级', rightX, rowY + 36);
+
+    // 中间竖线
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cardW / 2, rowY - 40);
+    ctx.lineTo(cardW / 2, rowY + 50);
+    ctx.stroke();
+
+    // 底部链接（确保可见）
+    const siteUrl = window.location.hostname || 'wsx9172.github.io';
+    const footerY = cardH - 64;
+
+    ctx.fillStyle = '#667eea';
+    ctx.font = 'bold 28px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(siteUrl, cardW / 2, footerY);
+
+    ctx.fillStyle = '#bbb';
+    ctx.font = '20px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText('扫码或访问链接开始游戏', cardW / 2, footerY + 34);
+
+    return canvas;
+}
+
+// ===== 保存图片到设备 =====
+function saveResultImage() {
     try {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
-        copied = true;
-    } catch (_) {
-        // navigator.clipboard 不可用，降级传统方式
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = `${text}\n${url}`;
-            ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            copied = true;
-        } catch (__) { /* 完全失败 */ }
+        const canvas = generateResultCard();
+        downloadCanvas(canvas, `贪吃蛇_${gameState.score}分.png`);
+        showToast('图片已保存');
+    } catch (e) {
+        console.error('保存图片失败:', e);
+        showToast('保存失败，请重试');
     }
+}
 
-    if (copied) {
-        const orig = shareBtn.innerHTML;
-        shareBtn.innerHTML = '<span style="font-size:1.2em">✓</span>';
-        // 用暂停提示显示 toast
-        pauseHint.textContent = '链接已复制，去粘贴分享吧';
-        pauseHint.classList.add('visible');
-        pauseHint.classList.remove('countdown');
-        setTimeout(() => {
-            shareBtn.innerHTML = orig;
-            pauseHint.classList.remove('visible');
-            pauseHint.textContent = '';
-        }, 1800);
+function showToast(msg) {
+    const toast = document.getElementById('shareToast');
+    if (toast) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
     }
+}
+
+// 同步下载（dataURL 在用户手势内触发，避免确认弹窗）
+function downloadCanvas(canvas, filename) {
+    triggerDownload(canvas.toDataURL('image/png'), filename);
+}
+
+function triggerDownload(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
 
 // 游戏循环
