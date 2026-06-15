@@ -275,6 +275,7 @@ const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const restartBtn = document.getElementById('restartBtn');
 const homeBtn = document.getElementById('homeBtn');
+const shareBtn = document.getElementById('shareBtn');
 const diffEasy = document.getElementById('diffEasy');
 const diffNormal = document.getElementById('diffNormal');
 const diffHard = document.getElementById('diffHard');
@@ -322,6 +323,7 @@ function addEventListeners() {
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', restartGame);
     homeBtn.addEventListener('click', goHome);
+    shareBtn.addEventListener('click', shareGame);
 
     // 难度切换
     diffEasy.addEventListener('click', () => setDifficulty('easy'));
@@ -717,6 +719,34 @@ function restartGame() {
 // 返回主页（只重置，不开始游戏）
 function goHome() {
     resetGame();
+}
+
+// 分享
+async function shareGame() {
+    const text = `🐍 贪吃蛇 — 得分 ${gameState.score}，等级 ${gameState.level}`;
+    const url = window.location.href;
+
+    try {
+        if (navigator.share) {
+            await navigator.share({ title: '贪吃蛇', text, url });
+        } else {
+            await navigator.clipboard.writeText(`${text}\n${url}`);
+            // 临时反馈
+            const orig = shareBtn.innerHTML;
+            shareBtn.innerHTML = '<span style="font-size:1.2em">✓</span>';
+            setTimeout(() => { shareBtn.innerHTML = orig; }, 1200);
+        }
+    } catch (e) {
+        // 用户取消分享或剪贴板失败，静默忽略
+        if (e.name !== 'AbortError') {
+            try {
+                await navigator.clipboard.writeText(`${text}\n${url}`);
+                const orig = shareBtn.innerHTML;
+                shareBtn.innerHTML = '<span style="font-size:1.2em">✓</span>';
+                setTimeout(() => { shareBtn.innerHTML = orig; }, 1200);
+            } catch (_) { /* 忽略 */ }
+        }
+    }
 }
 
 // 游戏循环
